@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotar PDF — Say Alejandro</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <style>
+        :root {
+            --purple:       #832885;
+            --purple-dark:  #5A2362;
+            --purple-light: #EC6AFF;
+            --yellow:       #EFDB5D;
+            --yellow-dark:  #EABE59;
+            --cream:        #F6EECA;
+            --text:         #3a1a4d;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: var(--cream); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+
+        header { background: var(--purple); box-shadow: 0 2px 16px rgba(90,35,98,.2); display: flex; align-items: center; gap: 14px; padding: 15px 36px; position: sticky; top: 0; z-index: 100; }
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .header-text .brand { font-family: 'Titan One', cursive; font-size: 20px; color: var(--yellow); line-height: 1.15; letter-spacing: .01em; }
+        .header-text .subtitle { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 10px; color: var(--cream); opacity: .45; letter-spacing: .14em; text-transform: uppercase; }
+        .header-nav { margin-left: auto; }
+        .nav-back { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.5); text-decoration: none; padding: 6px 14px; border: 1.5px solid rgba(246,238,202,.15); border-radius: 50px; transition: color .15s, border-color .15s; white-space: nowrap; }
+        .nav-back:hover { color: var(--cream); border-color: rgba(246,238,202,.35); }
+
+        main { flex: 1; width: 100%; max-width: 900px; margin: 0 auto; padding: 52px 24px 72px; }
+
+        .hero { text-align: center; margin-bottom: 44px; }
+        .hero h1 { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: clamp(28px, 5vw, 46px); color: var(--purple); letter-spacing: -.015em; line-height: 1.1; margin-bottom: 14px; }
+        .hero p { font-family: 'DM Sans', sans-serif; font-size: 15px; font-style: italic; color: var(--purple-dark); opacity: .55; max-width: 440px; margin: 0 auto; line-height: 1.65; }
+
+        .upload-zone {
+            position: relative; background: #fff;
+            border: 2px dashed rgba(131,40,133,.28); border-radius: 20px;
+            padding: 60px 40px; text-align: center; cursor: pointer;
+            transition: border-color .2s, transform .18s, box-shadow .2s;
+            box-shadow: 0 2px 20px rgba(90,35,98,.07);
+        }
+        .upload-zone:hover { border-color: var(--purple); transform: translateY(-2px); box-shadow: 0 12px 36px rgba(90,35,98,.13); }
+        .upload-zone.drag-over { border-color: var(--purple-light); box-shadow: 0 0 0 4px rgba(236,106,255,.15); }
+        .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+        .upload-icon-wrap { width: 56px; height: 56px; background: rgba(131,40,133,.08); border-radius: 14px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .upload-zone h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 19px; color: var(--purple); margin-bottom: 6px; }
+        .upload-zone p { font-family: 'DM Sans', sans-serif; font-size: 14px; color: var(--purple-dark); opacity: .5; }
+
+        #pagesSection { margin-top: 44px; display: none; }
+        .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+        .section-head h3 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 16px; color: var(--purple); }
+
+        .rot-all-btns { display: flex; gap: 8px; }
+        .btn-rotall { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: var(--purple); background: rgba(131,40,133,.08); border: 1.5px solid rgba(131,40,133,.2); border-radius: 50px; padding: 5px 14px; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 5px; }
+        .btn-rotall:hover { background: rgba(131,40,133,.15); }
+
+        #pagesGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+        .page-card { background: #fff; border-radius: 14px; padding: 10px; border: 2px solid transparent; box-shadow: 0 2px 10px rgba(90,35,98,.09); }
+        .pg-num { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 10px; color: var(--purple-dark); opacity: .5; text-align: center; margin-bottom: 6px; }
+
+        /* Square thumb so rotated pages look right */
+        .thumb {
+            width: 100%; aspect-ratio: 1/1; border-radius: 8px;
+            overflow: hidden; background: rgba(131,40,133,.06);
+            display: flex; align-items: center; justify-content: center; margin-bottom: 10px;
+        }
+        .rot-inner {
+            width: 82%; height: 82%;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+        }
+        .rot-inner img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 3px; }
+        .rot-inner .ph { font-size: 28px; opacity: .25; }
+
+        .r90  .rot-inner { transform: rotate(90deg); }
+        .r180 .rot-inner { transform: rotate(180deg); }
+        .r270 .rot-inner { transform: rotate(270deg); }
+
+        .rot-controls { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-rot {
+            width: 32px; height: 32px;
+            background: rgba(131,40,133,.08); border: 1.5px solid rgba(131,40,133,.18);
+            border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background .15s, transform .15s; flex-shrink: 0;
+        }
+        .btn-rot:hover { background: rgba(131,40,133,.18); transform: scale(1.1); }
+        .rot-deg { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 11px; color: var(--purple); min-width: 32px; text-align: center; }
+
+        #actionsBar { margin-top: 24px; background: var(--purple-dark); border-radius: 16px; padding: 20px 22px; display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+        .opt { display: flex; flex-direction: column; gap: 6px; }
+        .opt label { font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; color: var(--cream); opacity: .45; text-transform: uppercase; letter-spacing: .1em; }
+        .opt input[type="text"] { background: rgba(131,40,133,.3); border: 1.5px solid rgba(246,238,202,.15); color: var(--cream); border-radius: 10px; padding: 9px 12px; font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color .15s; }
+        .opt input:focus { border-color: rgba(246,238,202,.4); }
+        .opt input::placeholder { color: rgba(246,238,202,.25); }
+        .opt-name { flex: 1; min-width: 180px; }
+        .spacer { flex: 1; }
+
+        .btn-clear { background: transparent; color: rgba(246,238,202,.6); border: 1.5px solid rgba(246,238,202,.2); border-radius: 50px; padding: 10px 20px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: border-color .2s, color .2s; white-space: nowrap; }
+        .btn-clear:hover { border-color: rgba(246,238,202,.45); color: var(--cream); }
+
+        .btn-gen { background: var(--yellow); color: var(--purple-dark); border: none; border-radius: 50px; padding: 12px 28px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px; cursor: pointer; transition: background .2s, transform .18s, box-shadow .2s; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .btn-gen:hover:not(:disabled) { background: var(--yellow-dark); transform: scale(1.04); box-shadow: 0 6px 22px rgba(234,190,89,.3); }
+        .btn-gen:disabled { opacity: .35; cursor: not-allowed; }
+
+        .progress-wrap { margin-top: 18px; display: none; }
+        .progress-wrap.on { display: block; }
+        .progress-label { font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; color: var(--cream); opacity: .55; margin-bottom: 8px; }
+        .progress-bar { height: 4px; background: rgba(239,219,93,.1); border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--yellow), var(--purple-light)); border-radius: 2px; transition: width .3s ease; }
+
+        .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--purple-dark); border: 1.5px solid var(--yellow); color: var(--yellow); padding: 12px 24px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,.4); white-space: nowrap; pointer-events: none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.err { border-color: var(--purple-light); color: var(--purple-light); }
+
+        footer { background: var(--purple-dark); border-top: 2px solid var(--purple); text-align: center; padding: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        footer .foot-brand { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); opacity: .35; }
+        footer .foot-sep { font-size: 13px; color: var(--cream); opacity: .2; }
+        footer .foot-text { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--cream); opacity: .2; }
+
+        @media (max-width: 600px) {
+            header { padding: 13px 18px; }
+            main { padding: 36px 16px 56px; }
+            .upload-zone { padding: 48px 20px; }
+            #actionsBar { flex-direction: column; align-items: stretch; }
+            .spacer { display: none; }
+            .btn-gen, .btn-clear { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.11,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <div class="header-text">
+        <div class="brand">Say Alejandro</div>
+        <div class="subtitle">Herramientas</div>
+    </div>
+    <div class="header-nav">
+        <a href="index.html" class="nav-back">← Herramientas</a>
+    </div>
+</header>
+
+<main>
+    <div class="hero">
+        <h1>Rotar PDF</h1>
+        <p>Gira las páginas de tu PDF individualmente o todas a la vez. Los cambios se ven en tiempo real.</p>
+    </div>
+
+    <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".pdf">
+        <div class="upload-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M14 4L14 20" stroke="#832885" stroke-width="2.2" stroke-linecap="round"/>
+                <path d="M8 10L14 4L20 10" stroke="#832885" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 24H24" stroke="#832885" stroke-width="2.2" stroke-linecap="round"/>
+            </svg>
+        </div>
+        <h2>Arrastra tu PDF aquí</h2>
+        <p>o haz clic para seleccionarlo</p>
+    </div>
+
+    <div id="pagesSection">
+        <div class="section-head">
+            <h3>Páginas · <span id="pgCount">0</span></h3>
+            <div class="rot-all-btns">
+                <button class="btn-rotall" id="btnAllCCW">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7C2 4.24 4.24 2 7 2C9.2 2 11.07 3.4 11.75 5.35" stroke="#832885" stroke-width="1.6" stroke-linecap="round"/><path d="M11.75 2.5V5.5H8.75" stroke="#832885" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7C12 9.76 9.76 12 7 12C4.24 12 2 9.76 2 7" stroke="#832885" stroke-width="1.6" stroke-linecap="round" opacity=".4"/></svg>
+                    Todas ↺
+                </button>
+                <button class="btn-rotall" id="btnAllCW">
+                    Todas ↻
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7C12 4.24 9.76 2 7 2C4.8 2 2.93 3.4 2.25 5.35" stroke="#832885" stroke-width="1.6" stroke-linecap="round"/><path d="M2.25 2.5V5.5H5.25" stroke="#832885" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 7C2 9.76 4.24 12 7 12C9.76 12 12 9.76 12 7" stroke="#832885" stroke-width="1.6" stroke-linecap="round" opacity=".4"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="pagesGrid"></div>
+
+        <div id="actionsBar">
+            <div class="opt opt-name">
+                <label>Nombre del archivo</label>
+                <input type="text" id="outputName" placeholder="documento" value="documento-rotado">
+            </div>
+            <div class="spacer"></div>
+            <button class="btn-clear" id="btnReset">↺ Restablecer</button>
+            <button class="btn-gen" id="btnGen">✨ Generar PDF</button>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-label" id="progressLabel">Procesando...</div>
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <span class="foot-brand">Say Alejandro</span>
+    <span class="foot-sep">—</span>
+    <span class="foot-text">Herramientas web</span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const { PDFDocument, degrees } = PDFLib;
+
+    let pdfBytes  = null;
+    let rotations = [];   // extra rotation applied by user (0 | 90 | 180 | 270)
+    let pdfJsDoc  = null;
+
+    const uploadZone    = document.getElementById('uploadZone');
+    const fileInput     = document.getElementById('fileInput');
+    const pagesSection  = document.getElementById('pagesSection');
+    const pagesGrid     = document.getElementById('pagesGrid');
+    const pgCount       = document.getElementById('pgCount');
+    const btnGen        = document.getElementById('btnGen');
+    const btnReset      = document.getElementById('btnReset');
+    const btnAllCCW     = document.getElementById('btnAllCCW');
+    const btnAllCW      = document.getElementById('btnAllCW');
+    const outputName    = document.getElementById('outputName');
+    const progressWrap  = document.getElementById('progressWrap');
+    const progressFill  = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const toastEl       = document.getElementById('toast');
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault(); uploadZone.classList.remove('drag-over');
+        const f = e.dataTransfer.files[0];
+        if (f && /\.pdf$/i.test(f.name)) loadPDF(f);
+        else showToast('Solo se aceptan archivos PDF', true);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadPDF(fileInput.files[0]); fileInput.value = ''; });
+
+    btnAllCCW.addEventListener('click', () => rotateAll(-90));
+    btnAllCW.addEventListener('click',  () => rotateAll(90));
+    btnReset.addEventListener('click',  () => { rotations.fill(0); updateAllCards(); });
+    btnGen.addEventListener('click', generate);
+
+    async function loadPDF(file) {
+        pdfBytes  = await file.arrayBuffer();
+        pdfJsDoc  = await pdfjsLib.getDocument({ data: pdfBytes.slice(0) }).promise;
+        const n   = pdfJsDoc.numPages;
+        rotations = new Array(n).fill(0);
+
+        pgCount.textContent = n;
+        pagesGrid.innerHTML = '';
+        for (let i = 0; i < n; i++) pagesGrid.appendChild(buildCard(i));
+
+        pagesSection.style.display = 'block';
+        showToast(`PDF cargado — ${n} página${n > 1 ? 's' : ''}`);
+        for (let i = 0; i < n; i++) renderThumb(i);
+    }
+
+    function buildCard(idx) {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.id = `card-${idx}`;
+        card.innerHTML = `
+            <div class="pg-num">Página ${idx + 1}</div>
+            <div class="thumb"><div class="rot-inner"><span class="ph">📄</span></div></div>
+            <div class="rot-controls">
+                <button class="btn-rot" data-dir="-1" data-idx="${idx}" title="Rotar izquierda">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7C2 4.24 4.24 2 7 2C9.2 2 11.07 3.4 11.75 5.35" stroke="#832885" stroke-width="1.6" stroke-linecap="round"/><path d="M11.75 2.5V5.5H8.75" stroke="#832885" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <span class="rot-deg" id="deg-${idx}">0°</span>
+                <button class="btn-rot" data-dir="1" data-idx="${idx}" title="Rotar derecha">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M12 7C12 4.24 9.76 2 7 2C4.8 2 2.93 3.4 2.25 5.35" stroke="#832885" stroke-width="1.6" stroke-linecap="round"/><path d="M2.25 2.5V5.5H5.25" stroke="#832885" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+        `;
+        card.querySelectorAll('.btn-rot').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const i = parseInt(btn.dataset.idx);
+                const d = parseInt(btn.dataset.dir);
+                rotations[i] = (rotations[i] + d * 90 + 360) % 360;
+                updateCard(i);
+            });
+        });
+        return card;
+    }
+
+    async function renderThumb(idx) {
+        try {
+            const page = await pdfJsDoc.getPage(idx + 1);
+            const vp   = page.getViewport({ scale: 0.5 });
+            const canvas = document.createElement('canvas');
+            canvas.width = vp.width; canvas.height = vp.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+            const inner = document.querySelector(`#card-${idx} .rot-inner`);
+            if (inner) inner.innerHTML = `<img src="${canvas.toDataURL()}" alt="Página ${idx + 1}">`;
+        } catch {}
+    }
+
+    function updateCard(idx) {
+        const card = document.getElementById(`card-${idx}`);
+        if (!card) return;
+        const r = rotations[idx];
+        card.className = `page-card${r ? ' r' + r : ''}`;
+        document.getElementById(`deg-${idx}`).textContent = r + '°';
+    }
+
+    function updateAllCards() {
+        rotations.forEach((_, i) => updateCard(i));
+    }
+
+    function rotateAll(delta) {
+        rotations = rotations.map(r => (r + delta + 360) % 360);
+        updateAllCards();
+    }
+
+    async function generate() {
+        if (!pdfBytes) return;
+        btnGen.disabled = true;
+        setProgress(true, 'Aplicando rotaciones…', 30);
+        const name = (outputName.value.trim() || 'documento').replace(/\.pdf$/i, '');
+
+        try {
+            const srcDoc = await PDFDocument.load(pdfBytes);
+            const outDoc = await PDFDocument.create();
+            const copied = await outDoc.copyPages(srcDoc, srcDoc.getPageIndices());
+
+            copied.forEach((page, i) => {
+                if (rotations[i] !== 0) {
+                    const existing = page.getRotation().angle;
+                    page.setRotation(degrees((existing + rotations[i]) % 360));
+                }
+                outDoc.addPage(page);
+            });
+
+            setProgress(true, 'Guardando…', 85);
+            const bytes = await outDoc.save();
+            const blob  = new Blob([bytes], { type: 'application/pdf' });
+            const url   = URL.createObjectURL(blob);
+            const a     = document.createElement('a');
+            a.href = url; a.download = name + '.pdf'; a.click();
+            URL.revokeObjectURL(url);
+            showToast('PDF rotado descargado');
+
+        } catch (err) {
+            showToast('Error: ' + err.message, true);
+        } finally {
+            setTimeout(() => { setProgress(false); btnGen.disabled = false; }, 1600);
+        }
+    }
+
+    function setProgress(show, label = '', pct = 0) {
+        progressWrap.classList.toggle('on', show);
+        if (show) { progressLabel.textContent = label; progressFill.style.width = pct + '%'; }
+        else progressFill.style.width = '0%';
+    }
+
+    let _tt;
+    function showToast(msg, err = false) {
+        toastEl.textContent = msg;
+        toastEl.className = 'toast show' + (err ? ' err' : '');
+        clearTimeout(_tt);
+        _tt = setTimeout(() => toastEl.classList.remove('show'), 3200);
+    }
+</script>
+</body>
+</html>
