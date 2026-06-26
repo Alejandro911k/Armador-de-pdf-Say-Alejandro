@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Armadora de PDFs — Say Alejandro</title>
+    <title>Say Alejandro — Herramientas PDF</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
-
-    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
     <style>
         :root {
@@ -20,13 +17,14 @@
             --yellow:       #EFDB5D;
             --yellow-dark:  #EABE59;
             --cream:        #F6EECA;
+            --text:         #3a1a4d;
         }
 
         *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: var(--purple);
-            color: #fff;
+            background: var(--cream);
+            color: var(--text);
             font-family: 'DM Sans', sans-serif;
             min-height: 100vh;
             display: flex;
@@ -35,33 +33,31 @@
 
         /* ── HEADER ── */
         header {
+            background: var(--purple);
+            box-shadow: 0 2px 16px rgba(90,35,98,.2);
             display: flex;
             align-items: center;
             gap: 14px;
-            padding: 18px 32px;
-            background: rgba(90,35,98,.55);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(239,219,93,.12);
+            padding: 15px 36px;
             position: sticky;
             top: 0;
             z-index: 100;
         }
-
-        .logo { width: 44px; height: 44px; flex-shrink: 0; }
-
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
         .header-text .brand {
             font-family: 'Titan One', cursive;
-            font-size: 22px;
+            font-size: 20px;
             color: var(--yellow);
-            line-height: 1.1;
+            line-height: 1.15;
+            letter-spacing: .01em;
         }
         .header-text .subtitle {
             font-family: 'Nunito', sans-serif;
             font-weight: 700;
-            font-size: 11px;
+            font-size: 10px;
             color: var(--cream);
-            opacity: .65;
-            letter-spacing: .07em;
+            opacity: .45;
+            letter-spacing: .14em;
             text-transform: uppercase;
         }
 
@@ -69,348 +65,140 @@
         main {
             flex: 1;
             width: 100%;
-            max-width: 900px;
+            max-width: 1020px;
             margin: 0 auto;
-            padding: 36px 24px 64px;
+            padding: 52px 24px 72px;
         }
 
         /* ── HERO ── */
         .hero {
             text-align: center;
-            margin-bottom: 36px;
+            margin-bottom: 52px;
         }
         .hero h1 {
-            font-family: 'Titan One', cursive;
-            font-size: clamp(30px, 5vw, 52px);
-            color: var(--yellow);
-            margin-bottom: 10px;
-        }
-        .hero p {
-            font-size: 16px;
-            color: var(--cream);
-            opacity: .8;
-            max-width: 460px;
-            margin: 0 auto;
-            line-height: 1.55;
-        }
-
-        /* ── UPLOAD ZONE ── */
-        .upload-zone {
-            position: relative;
-            background: var(--purple-dark);
-            border: 2.5px dashed rgba(239,219,93,.45);
-            border-radius: 24px;
-            padding: 52px 32px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color .2s, background .2s, transform .2s, box-shadow .2s;
-        }
-        .upload-zone:hover {
-            border-color: var(--yellow);
-            background: rgba(90,35,98,.85);
-        }
-        .upload-zone.drag-over {
-            border-color: var(--purple-light);
-            background: rgba(90,35,98,.95);
-            transform: scale(1.015);
-            box-shadow: 0 0 48px rgba(236,106,255,.25);
-        }
-        .upload-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-        }
-        .upload-icon { font-size: 52px; display: block; margin-bottom: 14px; }
-        .upload-zone h2 {
             font-family: 'Nunito', sans-serif;
             font-weight: 900;
-            font-size: 22px;
-            color: var(--yellow);
-            margin-bottom: 8px;
+            font-size: clamp(28px, 5vw, 46px);
+            color: var(--purple);
+            letter-spacing: -.015em;
+            line-height: 1.1;
+            margin-bottom: 14px;
         }
-        .upload-zone p {
-            font-size: 14px;
-            color: var(--cream);
-            opacity: .65;
-            margin-bottom: 22px;
-        }
-        .formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-        .fmt-tag {
-            background: rgba(239,219,93,.1);
-            border: 1px solid rgba(239,219,93,.3);
-            color: var(--yellow);
-            border-radius: 20px;
-            padding: 5px 14px;
-            font-size: 12px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            letter-spacing: .04em;
-        }
-
-        /* ── FILES SECTION ── */
-        #filesSection { margin-top: 36px; display: none; }
-
-        .section-head {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 18px;
-        }
-        .section-head h3 {
-            font-family: 'Nunito', sans-serif;
-            font-weight: 800;
-            font-size: 18px;
-            color: var(--yellow);
-        }
-        .section-head .hint {
-            font-size: 13px;
-            color: var(--cream);
-            opacity: .5;
+        .hero p {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
             font-style: italic;
+            color: var(--purple-dark);
+            opacity: .55;
+            max-width: 480px;
+            margin: 0 auto;
+            line-height: 1.65;
         }
 
-        /* ── GRID ── */
-        #filesGrid {
+        /* ── TOOLS GRID ── */
+        .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
             gap: 14px;
         }
 
-        /* ── FILE CARD ── */
-        .file-card {
-            background: var(--purple-dark);
+        /* ── TOOL CARD ── */
+        .tool-card {
+            background: #fff;
             border-radius: 16px;
-            padding: 10px;
-            position: relative;
-            cursor: grab;
-            transition: transform .15s, box-shadow .15s, border-color .15s;
+            padding: 18px 20px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
             border: 2px solid transparent;
+            box-shadow: 0 2px 10px rgba(90,35,98,.09);
+            text-decoration: none;
+            color: inherit;
+            transition: transform .15s, box-shadow .15s, border-color .15s;
             user-select: none;
         }
-        .file-card:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(0,0,0,.35); }
-        .file-card.dragging { opacity: .3; transform: scale(.95); cursor: grabbing; }
-        .file-card.drag-over-card { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(239,219,93,.2); }
+        a.tool-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 28px rgba(90,35,98,.16);
+            border-color: var(--purple);
+        }
+        div.tool-card {
+            opacity: .48;
+            cursor: default;
+        }
 
-        .thumb {
-            width: 100%;
-            aspect-ratio: 3/4;
-            border-radius: 10px;
-            overflow: hidden;
-            background: rgba(131,40,133,.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 10px;
-            position: relative;
-        }
-        .thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .thumb .file-emoji { font-size: 38px; opacity: .75; }
-        .thumb .pg-badge {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: rgba(90,35,98,.88);
-            color: var(--yellow);
-            font-size: 10px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            padding: 2px 7px;
-            border-radius: 10px;
-        }
-        .card-num {
-            position: absolute;
-            top: 8px;
-            left: 8px;
-            width: 22px; height: 22px;
-            background: var(--yellow);
-            border-radius: 50%;
-            color: var(--purple-dark);
-            font-size: 11px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 900;
+        /* ── TOOL ICON ── */
+        .tool-icon-wrap {
+            width: 46px; height: 46px;
+            background: rgba(131,40,133,.09);
+            border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 6px rgba(0,0,0,.3);
+            flex-shrink: 0;
         }
-        .card-del {
-            position: absolute;
-            top: 6px; right: 6px;
-            width: 22px; height: 22px;
-            background: rgba(236,106,255,.18);
-            border: none;
-            border-radius: 50%;
-            color: var(--purple-light);
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px;
-            transition: background .15s;
-            padding: 0;
+        div.tool-card .tool-icon-wrap {
+            background: rgba(90,35,98,.06);
         }
-        .card-del:hover { background: rgba(236,106,255,.45); }
-        .card-name {
-            font-size: 11px;
-            color: var(--cream);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: block;
-        }
-        .card-size { font-size: 10px; color: var(--yellow-dark); opacity: .8; }
 
-        /* ── ACTIONS BAR ── */
-        #actionsBar {
-            margin-top: 28px;
-            background: var(--purple-dark);
-            border-radius: 20px;
-            padding: 20px 24px;
-            display: flex;
-            align-items: flex-end;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-        .opt { display: flex; flex-direction: column; gap: 5px; }
-        .opt label {
-            font-size: 11px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            color: var(--cream);
-            opacity: .6;
-            text-transform: uppercase;
-            letter-spacing: .06em;
-        }
-        .opt select, .opt input[type="text"] {
-            background: rgba(131,40,133,.5);
-            border: 1.5px solid rgba(239,219,93,.22);
-            color: var(--yellow);
-            border-radius: 10px;
-            padding: 8px 12px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 13px;
-            outline: none;
-            transition: border-color .15s;
-        }
-        .opt select:focus, .opt input[type="text"]:focus { border-color: rgba(239,219,93,.6); }
-        .opt select option { background: var(--purple-dark); }
-        .opt input[type="text"]::placeholder { color: rgba(255,255,255,.3); }
-        .opt input[type="text"] { color: #fff; min-width: 180px; }
-        .opt-name { flex: 1; min-width: 180px; }
+        .tool-info { flex: 1; min-width: 0; }
 
-        .spacer { flex: 1; }
-
-        .btn-clear {
-            background: transparent;
-            color: var(--purple-light);
-            border: 1.5px solid rgba(236,106,255,.45);
-            border-radius: 50px;
-            padding: 10px 22px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background .2s, border-color .2s;
-            white-space: nowrap;
-        }
-        .btn-clear:hover { background: rgba(236,106,255,.1); border-color: var(--purple-light); }
-
-        .btn-gen {
-            background: var(--yellow);
-            color: var(--purple-dark);
-            border: none;
-            border-radius: 50px;
-            padding: 12px 30px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 900;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background .2s, transform .2s, box-shadow .2s;
+        .tool-name-row {
             display: flex;
             align-items: center;
             gap: 8px;
-            white-space: nowrap;
+            margin-bottom: 5px;
+            flex-wrap: wrap;
         }
-        .btn-gen:hover:not(:disabled) {
-            background: var(--yellow-dark);
-            transform: scale(1.04);
-            box-shadow: 0 6px 22px rgba(239,219,93,.35);
-        }
-        .btn-gen:disabled { opacity: .4; cursor: not-allowed; }
-
-        /* ── PROGRESS ── */
-        .progress-wrap { margin-top: 18px; display: none; }
-        .progress-wrap.on { display: block; }
-        .progress-label {
-            font-size: 13px;
+        .tool-name {
             font-family: 'Nunito', sans-serif;
-            font-weight: 700;
-            color: var(--cream);
-            opacity: .75;
-            margin-bottom: 8px;
-        }
-        .progress-bar {
-            height: 6px;
-            background: rgba(239,219,93,.15);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, var(--yellow), var(--purple-light));
-            border-radius: 3px;
-            transition: width .3s ease;
-        }
-
-        /* ── TOAST ── */
-        .toast {
-            position: fixed;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%) translateY(90px);
-            background: var(--purple-dark);
-            border: 1.5px solid var(--yellow);
-            color: var(--yellow);
-            padding: 13px 26px;
-            border-radius: 50px;
-            font-family: 'Nunito', sans-serif;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 15px;
-            transition: transform .35s cubic-bezier(.34,1.56,.64,1);
-            z-index: 999;
-            box-shadow: 0 8px 32px rgba(0,0,0,.4);
-            white-space: nowrap;
-            pointer-events: none;
+            color: var(--text);
         }
-        .toast.show { transform: translateX(-50%) translateY(0); }
-        .toast.err { border-color: var(--purple-light); color: var(--purple-light); }
+        .tool-badge {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 9px;
+            letter-spacing: .07em;
+            text-transform: uppercase;
+            padding: 2px 9px;
+            border-radius: 10px;
+        }
+        .badge-on   { background: var(--yellow); color: var(--purple-dark); }
+        .badge-soon { background: rgba(90,35,98,.1); color: rgba(90,35,98,.45); }
+
+        .tool-desc {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 12.5px;
+            color: var(--purple-dark);
+            opacity: .65;
+            line-height: 1.5;
+        }
 
         /* ── FOOTER ── */
         footer {
+            background: var(--purple-dark);
+            border-top: 2px solid var(--purple);
             text-align: center;
-            padding: 22px;
-            font-size: 13px;
-            color: rgba(246,238,202,.35);
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        footer strong {
-            font-family: 'Titan One', cursive;
-            color: rgba(239,219,93,.45);
-        }
+        footer .foot-brand { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); opacity: .35; }
+        footer .foot-sep   { font-size: 13px; color: var(--cream); opacity: .2; }
+        footer .foot-text  { font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--cream); opacity: .2; }
 
         /* ── RESPONSIVE ── */
-        @media (max-width: 600px) {
-            header { padding: 14px 20px; }
-            main { padding: 24px 16px 48px; }
-            .upload-zone { padding: 40px 20px; }
-            #actionsBar { flex-direction: column; align-items: stretch; }
-            .spacer { display: none; }
-            .btn-gen, .btn-clear { width: 100%; justify-content: center; }
+        @media (max-width: 640px) {
+            header { padding: 13px 18px; }
+            main { padding: 36px 16px 56px; }
+            .tools-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
     <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
         <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
@@ -420,363 +208,257 @@
     </svg>
     <div class="header-text">
         <div class="brand">Say Alejandro</div>
-        <div class="subtitle">Herramientas</div>
+        <div class="subtitle">Herramientas PDF</div>
     </div>
 </header>
 
-<!-- MAIN -->
 <main>
     <div class="hero">
-        <h1>Armadora de PDFs</h1>
-        <p>Sube imágenes y documentos PDF, ordénalos arrastrando y descarga un solo archivo listo.</p>
+        <h1>Herramientas PDF</h1>
+        <p>Todo lo que necesitas para trabajar con tus archivos PDF, directo en el navegador sin instalaciones.</p>
     </div>
 
-    <!-- UPLOAD ZONE -->
-    <div class="upload-zone" id="uploadZone">
-        <input type="file" id="fileInput" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
-        <span class="upload-icon">📄</span>
-        <h2>Arrastra tus archivos aquí</h2>
-        <p>o haz clic para seleccionar desde tu dispositivo</p>
-        <div class="formats">
-            <span class="fmt-tag">PDF</span>
-            <span class="fmt-tag">JPG</span>
-            <span class="fmt-tag">PNG</span>
-            <span class="fmt-tag">WEBP</span>
-        </div>
-    </div>
+    <div class="tools-grid">
 
-    <!-- FILES SECTION -->
-    <div id="filesSection">
-        <div class="section-head">
-            <h3>Archivos · <span id="fileCount">0</span></h3>
-            <span class="hint">Arrastra las tarjetas para reordenar</span>
-        </div>
-
-        <div id="filesGrid"></div>
-
-        <!-- ACTIONS -->
-        <div id="actionsBar">
-            <div class="opt">
-                <label>Tamaño</label>
-                <select id="selSize">
-                    <option value="original">Original</option>
-                    <option value="A4" selected>A4</option>
-                    <option value="letter">Carta (Letter)</option>
-                </select>
+        <!-- 1. UNIR PDF — ACTIVO -->
+        <a class="tool-card" href="merge.html">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="2" width="9" height="11" rx="2" stroke="#832885" stroke-width="1.8" fill="rgba(131,40,133,.1)"/>
+                    <rect x="14" y="2" width="9" height="11" rx="2" stroke="#832885" stroke-width="1.8" fill="rgba(131,40,133,.1)"/>
+                    <path d="M5.5 14L12 17.5L18.5 14" stroke="#832885" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="8.5" y="17.5" width="7" height="5" rx="1.5" stroke="#832885" stroke-width="1.8" fill="rgba(131,40,133,.1)"/>
+                </svg>
             </div>
-            <div class="opt">
-                <label>Orientación</label>
-                <select id="selOrientation">
-                    <option value="auto" selected>Automático</option>
-                    <option value="portrait">Retrato</option>
-                    <option value="landscape">Paisaje</option>
-                </select>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Unir PDF</span>
+                    <span class="tool-badge badge-on">Disponible</span>
+                </div>
+                <p class="tool-desc">Combina varios PDFs e imágenes en un solo documento.</p>
             </div>
-            <div class="opt opt-name">
-                <label>Nombre del archivo</label>
-                <input type="text" id="outputName" placeholder="mi-documento" value="documento">
+        </a>
+
+        <!-- 2. DIVIDIR PDF -->
+        <a class="tool-card" href="split.html">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="2" width="16" height="20" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M4 12H20" stroke="#5A2362" stroke-width="1.8" stroke-dasharray="3 2.5"/>
+                    <path d="M8 7h8M8 17h8" stroke="#5A2362" stroke-width="1.3" stroke-linecap="round" opacity=".4"/>
+                </svg>
             </div>
-            <div class="spacer"></div>
-            <button class="btn-clear" id="btnClear">🗑 Limpiar todo</button>
-            <button class="btn-gen" id="btnGen">✨ Generar PDF</button>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Dividir PDF</span>
+                    <span class="tool-badge badge-on">Disponible</span>
+                </div>
+                <p class="tool-desc">Separa un PDF en páginas o rangos individuales.</p>
+            </div>
+        </a>
+
+        <!-- 3. COMPRIMIR PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="2" width="16" height="20" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M12 7V17M9 14L12 17L15 14" stroke="#5A2362" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 10.5H10.5M13.5 10.5H16" stroke="#5A2362" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Comprimir PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Reduce el tamaño del archivo sin perder calidad visible.</p>
+            </div>
         </div>
 
-        <div class="progress-wrap" id="progressWrap">
-            <div class="progress-label" id="progressLabel">Procesando...</div>
-            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <!-- 4. ROTAR PDF -->
+        <a class="tool-card" href="rotate.html">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="4" width="14" height="17" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M15 2C18.5 3.5 21 6.5 21 10" stroke="#5A2362" stroke-width="1.8" stroke-linecap="round"/>
+                    <path d="M21 6.5V10.5H17" stroke="#5A2362" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Rotar PDF</span>
+                    <span class="tool-badge badge-on">Disponible</span>
+                </div>
+                <p class="tool-desc">Gira las páginas de tu PDF a la orientación correcta.</p>
+            </div>
+        </a>
+
+        <!-- 5. PDF A JPG -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="4" width="10" height="13" rx="2" stroke="#5A2362" stroke-width="1.6" fill="rgba(90,35,98,.08)"/>
+                    <path d="M13.5 10.5H21" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M18 8L21 10.5L18 13" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="14" y="14" width="9" height="7" rx="1.5" stroke="#5A2362" stroke-width="1.4" fill="rgba(90,35,98,.08)"/>
+                    <circle cx="16.5" cy="16.5" r="1" fill="#5A2362" opacity=".4"/>
+                    <path d="M14 19.5L17 17L19 19L20.5 17.5L23 20.5" stroke="#5A2362" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">PDF a JPG</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Convierte cada página de tu PDF en imágenes JPG.</p>
+            </div>
         </div>
+
+        <!-- 6. IMAGEN A PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="1" y="5" width="9" height="7" rx="1.5" stroke="#5A2362" stroke-width="1.6" fill="rgba(90,35,98,.08)"/>
+                    <circle cx="3.5" cy="7.5" r="1" fill="#5A2362" opacity=".4"/>
+                    <path d="M1 10.5L3.5 8L6 10L7.5 8.5L10 11.5" stroke="#5A2362" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+                    <path d="M11.5 8.5H13.5" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round"/>
+                    <path d="M12.5 6.5L14.5 8.5L12.5 10.5" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <rect x="15" y="3" width="8" height="11" rx="2" stroke="#5A2362" stroke-width="1.6" fill="rgba(90,35,98,.08)"/>
+                    <path d="M17 6h4M17 8.5h4M17 11h2.5" stroke="#5A2362" stroke-width="1.1" stroke-linecap="round" opacity=".4"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Imagen a PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Convierte imágenes JPG, PNG o WEBP en un PDF.</p>
+            </div>
+        </div>
+
+        <!-- 7. MARCA DE AGUA -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="2" width="16" height="20" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M6 18L18 6" stroke="#5A2362" stroke-width="2.5" stroke-linecap="round" opacity=".15"/>
+                    <path d="M4 15L15 4" stroke="#5A2362" stroke-width="1.5" stroke-linecap="round" opacity=".1"/>
+                    <path d="M9 21L21 9" stroke="#5A2362" stroke-width="1.5" stroke-linecap="round" opacity=".1"/>
+                    <path d="M8 7h8M8 10.5h6M8 14h5" stroke="#5A2362" stroke-width="1.2" stroke-linecap="round" opacity=".35"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Marca de agua</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Agrega texto o imagen superpuesta a todas las páginas.</p>
+            </div>
+        </div>
+
+        <!-- 8. PROTEGER PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="5" y="11" width="14" height="11" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="#5A2362" stroke-width="1.8" stroke-linecap="round"/>
+                    <circle cx="12" cy="17" r="2" stroke="#5A2362" stroke-width="1.5" fill="rgba(90,35,98,.15)"/>
+                    <line x1="12" y1="19" x2="12" y2="20.5" stroke="#5A2362" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Proteger PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Cifra tu PDF con contraseña para mayor seguridad.</p>
+            </div>
+        </div>
+
+        <!-- 9. NUMERAR PÁGINAS -->
+        <a class="tool-card" href="page-numbers.html">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="2" width="16" height="20" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M7 7h10M7 10.5h10M7 14h7" stroke="#5A2362" stroke-width="1.3" stroke-linecap="round" opacity=".4"/>
+                    <rect x="9" y="17" width="6" height="3" rx="1" stroke="#5A2362" stroke-width="1.3" fill="rgba(90,35,98,.15)"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Numerar páginas</span>
+                    <span class="tool-badge badge-on">Disponible</span>
+                </div>
+                <p class="tool-desc">Añade números de página a tu documento PDF.</p>
+            </div>
+        </a>
+
+        <!-- 10. ORGANIZAR PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="1" y="5" width="13" height="16" rx="2" stroke="#5A2362" stroke-width="1.6" fill="rgba(90,35,98,.12)"/>
+                    <rect x="4" y="3" width="13" height="16" rx="2" stroke="#5A2362" stroke-width="1.5" fill="#fff"/>
+                    <rect x="7" y="1" width="13" height="16" rx="2" stroke="#5A2362" stroke-width="1.5" fill="rgba(90,35,98,.06)"/>
+                    <path d="M20 9L23 12L20 15" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 12H23" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Organizar PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Reordena, elimina o extrae páginas de un PDF.</p>
+            </div>
+        </div>
+
+        <!-- 11. FIRMAR PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="4" y="3" width="16" height="20" rx="2" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M14 5L16.5 2.5L20 6L11 15H8V12Z" fill="rgba(90,35,98,.15)" stroke="#5A2362" stroke-width="1.2" stroke-linejoin="round"/>
+                    <path d="M7 19C9 15 11 21 13 17C15 13 16 19 17 18" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Firmar PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Dibuja tu firma y agrégala al documento PDF.</p>
+            </div>
+        </div>
+
+        <!-- 12. ESCANEAR A PDF -->
+        <div class="tool-card">
+            <div class="tool-icon-wrap">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="7" width="20" height="15" rx="2.5" stroke="#5A2362" stroke-width="1.8" fill="rgba(90,35,98,.08)"/>
+                    <path d="M9 7V5C9 4.4 9.4 4 10 4h4c.6 0 1 .4 1 1v2" stroke="#5A2362" stroke-width="1.6" stroke-linecap="round"/>
+                    <circle cx="12" cy="14.5" r="3.5" stroke="#5A2362" stroke-width="1.5"/>
+                    <circle cx="12" cy="14.5" r="1.8" fill="rgba(90,35,98,.2)" stroke="#5A2362" stroke-width="1.2"/>
+                    <circle cx="18.5" cy="10.5" r="1" fill="#5A2362" opacity=".4"/>
+                </svg>
+            </div>
+            <div class="tool-info">
+                <div class="tool-name-row">
+                    <span class="tool-name">Escanear a PDF</span>
+                    <span class="tool-badge badge-soon">Próximamente</span>
+                </div>
+                <p class="tool-desc">Usa la cámara para capturar documentos y convertirlos en PDF.</p>
+            </div>
+        </div>
+
     </div>
 </main>
 
-<footer><strong>Say Alejandro</strong> — Herramientas web</footer>
+<footer>
+    <span class="foot-brand">Say Alejandro</span>
+    <span class="foot-sep">—</span>
+    <span class="foot-text">Herramientas web</span>
+</footer>
 
-<div class="toast" id="toast"></div>
-
-<script>
-    pdfjsLib.GlobalWorkerOptions.workerSrc =
-        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
-
-    const { PDFDocument } = PDFLib;
-
-    // ── STATE ──
-    let files = [];
-    let dragSrcIdx = null;
-    let isCardDrag = false;
-    let uid = 0;
-
-    // ── DOM ──
-    const uploadZone    = document.getElementById('uploadZone');
-    const fileInput     = document.getElementById('fileInput');
-    const filesSection  = document.getElementById('filesSection');
-    const filesGrid     = document.getElementById('filesGrid');
-    const fileCount     = document.getElementById('fileCount');
-    const btnGen        = document.getElementById('btnGen');
-    const btnClear      = document.getElementById('btnClear');
-    const progressWrap  = document.getElementById('progressWrap');
-    const progressFill  = document.getElementById('progressFill');
-    const progressLabel = document.getElementById('progressLabel');
-    const outputName    = document.getElementById('outputName');
-    const toastEl       = document.getElementById('toast');
-    const selSize       = document.getElementById('selSize');
-    const selOrientation= document.getElementById('selOrientation');
-
-    // ── UPLOAD ZONE EVENTS ──
-    uploadZone.addEventListener('dragover', e => {
-        if (isCardDrag) return;
-        e.preventDefault();
-        uploadZone.classList.add('drag-over');
-    });
-    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-    uploadZone.addEventListener('drop', e => {
-        if (isCardDrag) return;
-        e.preventDefault();
-        uploadZone.classList.remove('drag-over');
-        handleFiles(e.dataTransfer.files);
-    });
-    fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
-    btnClear.addEventListener('click', () => { files = []; renderGrid(); filesSection.style.display = 'none'; });
-    btnGen.addEventListener('click', generatePDF);
-
-    // ── HANDLE FILES ──
-    async function handleFiles(list) {
-        const accepted = Array.from(list).filter(f => /\.(pdf|jpe?g|png|webp)$/i.test(f.name));
-        if (!accepted.length) { showToast('❌ Solo se aceptan PDF, JPG, PNG o WEBP', true); return; }
-
-        for (const file of accepted) {
-            const entry = {
-                id: uid++, file,
-                name: file.name,
-                size: file.size,
-                isPDF: /\.pdf$/i.test(file.name),
-                pageCount: 1,
-                thumbUrl: null
-            };
-            files.push(entry);
-            if (entry.isPDF) await makePDFThumb(entry);
-            else await makeImageThumb(entry);
-        }
-
-        renderGrid();
-        filesSection.style.display = 'block';
-        showToast(`✅ ${accepted.length} archivo${accepted.length > 1 ? 's' : ''} agregado${accepted.length > 1 ? 's' : ''}`);
-    }
-
-    async function makePDFThumb(entry) {
-        try {
-            const buf = await entry.file.arrayBuffer();
-            const doc = await pdfjsLib.getDocument({ data: buf }).promise;
-            entry.pageCount = doc.numPages;
-            const page = await doc.getPage(1);
-            const vp = page.getViewport({ scale: 0.6 });
-            const canvas = document.createElement('canvas');
-            canvas.width = vp.width; canvas.height = vp.height;
-            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-            entry.thumbUrl = canvas.toDataURL();
-        } catch { entry.thumbUrl = null; }
-    }
-
-    async function makeImageThumb(entry) {
-        return new Promise(res => {
-            const reader = new FileReader();
-            reader.onload = e => { entry.thumbUrl = e.target.result; res(); };
-            reader.readAsDataURL(entry.file);
-        });
-    }
-
-    // ── RENDER GRID ──
-    function renderGrid() {
-        filesGrid.innerHTML = '';
-        fileCount.textContent = files.length;
-
-        files.forEach((entry, idx) => {
-            const card = document.createElement('div');
-            card.className = 'file-card';
-            card.draggable = true;
-
-            const thumb = entry.thumbUrl
-                ? `<img src="${entry.thumbUrl}" alt="">`
-                : `<span class="file-emoji">${entry.isPDF ? '📄' : '🖼️'}</span>`;
-
-            const badge = entry.isPDF && entry.pageCount > 1
-                ? `<div class="pg-badge">${entry.pageCount} págs</div>` : '';
-
-            card.innerHTML = `
-                <div class="card-num">${idx + 1}</div>
-                <button class="card-del" data-id="${entry.id}" title="Eliminar">✕</button>
-                <div class="thumb">${thumb}${badge}</div>
-                <span class="card-name" title="${entry.name}">${entry.name}</span>
-                <span class="card-size">${fmtSize(entry.size)}</span>
-            `;
-
-            card.querySelector('.card-del').addEventListener('click', e => {
-                e.stopPropagation();
-                const id = parseInt(e.currentTarget.dataset.id);
-                files = files.filter(f => f.id !== id);
-                if (!files.length) filesSection.style.display = 'none';
-                renderGrid();
-            });
-
-            // Drag-to-reorder
-            card.addEventListener('dragstart', e => {
-                isCardDrag = true; dragSrcIdx = idx;
-                card.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-            });
-            card.addEventListener('dragend', () => {
-                isCardDrag = false;
-                card.classList.remove('dragging');
-                document.querySelectorAll('.file-card').forEach(c => c.classList.remove('drag-over-card'));
-            });
-            card.addEventListener('dragover', e => {
-                e.preventDefault();
-                document.querySelectorAll('.file-card').forEach(c => c.classList.remove('drag-over-card'));
-                if (dragSrcIdx !== idx) card.classList.add('drag-over-card');
-            });
-            card.addEventListener('drop', e => {
-                e.preventDefault(); e.stopPropagation();
-                if (dragSrcIdx !== null && dragSrcIdx !== idx) {
-                    const [moved] = files.splice(dragSrcIdx, 1);
-                    files.splice(idx, 0, moved);
-                    renderGrid();
-                }
-                dragSrcIdx = null;
-            });
-
-            filesGrid.appendChild(card);
-        });
-    }
-
-    // ── GENERATE PDF ──
-    async function generatePDF() {
-        if (!files.length) return;
-        btnGen.disabled = true;
-        setProgress(true, 'Iniciando...');
-
-        try {
-            const outDoc = await PDFDocument.create();
-            const size   = selSize.value;
-            const orient = selOrientation.value;
-            const A4     = [595.28, 841.89];
-            const LETTER = [612, 792];
-
-            for (let i = 0; i < files.length; i++) {
-                const entry = files[i];
-                const pct = Math.round(((i + 1) / files.length) * 95);
-                setProgress(true, `Procesando ${i + 1} de ${files.length}…`, pct);
-
-                if (entry.isPDF) {
-                    const bytes = await entry.file.arrayBuffer();
-
-                    if (size === 'original') {
-                        const src = await PDFDocument.load(bytes);
-                        const copied = await outDoc.copyPages(src, src.getPageIndices());
-                        copied.forEach(p => outDoc.addPage(p));
-                    } else {
-                        // Embed and scale to target size
-                        const embeds = await outDoc.embedPdf(bytes);
-                        const [baseW, baseH] = size === 'A4' ? A4 : LETTER;
-
-                        for (const emb of embeds) {
-                            const { width: ew, height: eh } = emb;
-                            let [pw, ph] = [baseW, baseH];
-                            if (orient === 'landscape' || (orient === 'auto' && ew > eh)) [pw, ph] = [ph, pw];
-                            const scale = Math.min(pw / ew, ph / eh);
-                            const page = outDoc.addPage([pw, ph]);
-                            page.drawPage(emb, {
-                                x: (pw - ew * scale) / 2,
-                                y: (ph - eh * scale) / 2,
-                                width:  ew * scale,
-                                height: eh * scale
-                            });
-                        }
-                    }
-                } else {
-                    // Image → PDF page
-                    const bytes = await entry.file.arrayBuffer();
-                    let img;
-
-                    if (/\.jpe?g$/i.test(entry.name)) {
-                        img = await outDoc.embedJpg(bytes);
-                    } else {
-                        const pngBytes = await toPNG(entry.file);
-                        img = await outDoc.embedPng(pngBytes);
-                    }
-
-                    const { width: iw, height: ih } = img;
-                    let [pw, ph] = [iw, ih];
-
-                    if (size !== 'original') {
-                        const [baseW, baseH] = size === 'A4' ? A4 : LETTER;
-                        [pw, ph] = [baseW, baseH];
-                        if (orient === 'landscape' || (orient === 'auto' && iw > ih)) [pw, ph] = [ph, pw];
-                    }
-
-                    const page  = outDoc.addPage([pw, ph]);
-                    const scale = Math.min(pw / iw, ph / ih);
-                    page.drawImage(img, {
-                        x: (pw - iw * scale) / 2,
-                        y: (ph - ih * scale) / 2,
-                        width:  iw * scale,
-                        height: ih * scale
-                    });
-                }
-            }
-
-            setProgress(true, '¡Listo! Descargando…', 100);
-            const pdfBytes = await outDoc.save();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            const url  = URL.createObjectURL(blob);
-            const a    = document.createElement('a');
-            const name = (outputName.value.trim() || 'documento').replace(/\.pdf$/i, '');
-            a.href = url; a.download = name + '.pdf'; a.click();
-            URL.revokeObjectURL(url);
-            showToast('🎉 PDF generado y descargado!');
-
-        } catch (err) {
-            console.error(err);
-            showToast('❌ Error: ' + err.message, true);
-        } finally {
-            setTimeout(() => { setProgress(false); btnGen.disabled = false; }, 1600);
-        }
-    }
-
-    // Convert image (PNG / WebP) to PNG ArrayBuffer via canvas
-    function toPNG(file) {
-        return new Promise((res, rej) => {
-            const url = URL.createObjectURL(file);
-            const img = new Image();
-            img.onload = () => {
-                const c = document.createElement('canvas');
-                c.width = img.naturalWidth; c.height = img.naturalHeight;
-                c.getContext('2d').drawImage(img, 0, 0);
-                URL.revokeObjectURL(url);
-                c.toBlob(b => b.arrayBuffer().then(res).catch(rej), 'image/png');
-            };
-            img.onerror = rej;
-            img.src = url;
-        });
-    }
-
-    // ── HELPERS ──
-    function fmtSize(b) {
-        if (b < 1024) return b + ' B';
-        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
-        return (b / 1048576).toFixed(1) + ' MB';
-    }
-
-    function setProgress(show, label = '', pct = 0) {
-        progressWrap.classList.toggle('on', show);
-        if (show) { progressLabel.textContent = label; progressFill.style.width = pct + '%'; }
-        else { progressFill.style.width = '0%'; }
-    }
-
-    let _toastTimer;
-    function showToast(msg, err = false) {
-        toastEl.textContent = msg;
-        toastEl.className = 'toast show' + (err ? ' err' : '');
-        clearTimeout(_toastTimer);
-        _toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3200);
-    }
-</script>
 </body>
 </html>
