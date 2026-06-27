@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizador de Imágenes — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        :root {
+            --purple:       #832885;
+            --purple-dark:  #5A2362;
+            --purple-light: #EC6AFF;
+            --yellow:       #EFDB5D;
+            --yellow-dark:  #EABE59;
+            --cream:        #F6EECA;
+            --text:         #3a1a4d;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--cream);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: var(--purple);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 15px 36px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 16px rgba(90,35,98,.2);
+        }
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .brand { font-family: 'Titan One', cursive; font-size: 20px; color: var(--yellow); line-height: 1; }
+        .subtitle {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 10px;
+            color: rgba(246,238,202,.5);
+            letter-spacing: .14em;
+            text-transform: uppercase;
+        }
+        .header-nav { margin-left: auto; }
+        .nav-back {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: rgba(246,238,202,.5);
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1.5px solid rgba(246,238,202,.15);
+            border-radius: 50px;
+            transition: color .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .nav-back:hover { color: var(--cream); border-color: rgba(246,238,202,.35); }
+
+        /* ── MAIN ── */
+        main {
+            flex: 1;
+            padding: 32px 24px 48px;
+            max-width: 860px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        h1 {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 26px;
+            color: var(--purple);
+            margin-bottom: 6px;
+            letter-spacing: -.015em;
+        }
+        .page-desc {
+            font-size: 14px;
+            opacity: .7;
+            margin-bottom: 28px;
+        }
+
+        /* ── UPLOAD ZONE ── */
+        .upload-zone {
+            background: #fff;
+            border: 2.5px dashed rgba(131,40,133,.3);
+            border-radius: 20px;
+            padding: 44px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            margin-bottom: 20px;
+        }
+        .upload-zone:hover,
+        .upload-zone.drag-over {
+            border-color: var(--purple);
+            background: rgba(131,40,133,.035);
+        }
+        .upload-zone input[type="file"] { display: none; }
+        .upload-icon { font-size: 42px; margin-bottom: 14px; display: block; }
+        .upload-zone h2 {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 17px;
+            color: var(--purple);
+            margin-bottom: 6px;
+        }
+        .upload-zone p { font-size: 13px; opacity: .6; }
+        .btn-browse {
+            display: inline-block;
+            margin-top: 18px;
+            background: var(--purple);
+            color: #fff;
+            padding: 9px 22px;
+            border-radius: 50px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background .2s;
+            border: none;
+        }
+        .btn-browse:hover { background: var(--purple-dark); }
+
+        /* ── THUMBNAILS ── */
+        #thumbs-section { display: none; margin-bottom: 22px; }
+        .thumbs-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .thumbs-header h3 {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--purple);
+        }
+        .btn-add-more {
+            background: transparent;
+            color: rgba(58,26,77,.55);
+            border: 1.5px solid rgba(58,26,77,.2);
+            border-radius: 50px;
+            padding: 6px 16px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            transition: border-color .2s, color .2s;
+        }
+        .btn-add-more:hover { border-color: var(--purple); color: var(--purple); }
+
+        .thumbs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+            gap: 10px;
+        }
+        .thumb-item {
+            position: relative;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(90,35,98,.09);
+            aspect-ratio: 1;
+        }
+        .thumb-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb-num {
+            position: absolute;
+            bottom: 4px;
+            left: 5px;
+            background: rgba(90,35,98,.7);
+            color: #fff;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 20px;
+            line-height: 1.4;
+        }
+        .thumb-remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--purple-dark);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity .15s;
+        }
+        .thumb-item:hover .thumb-remove { opacity: 1; }
+
+        /* ── OPTIONS PANEL ── */
+        #options-section { display: none; }
+
+        .action-bar {
+            background: var(--purple-dark);
+            border-radius: 16px;
+            padding: 22px 24px;
+            margin-bottom: 16px;
+        }
+
+        .options-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 22px;
+            align-items: flex-start;
+        }
+
+        .opt-group { display: flex; flex-direction: column; gap: 8px; }
+
+        .opt-label {
+            font-family: 'Nunito', sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            color: rgba(246,238,202,.5);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+
+        /* Mode toggle */
+        .mode-toggle {
+            display: flex;
+            background: rgba(131,40,133,.35);
+            border-radius: 10px;
+            padding: 3px;
+            gap: 2px;
+        }
+        .mode-btn {
+            background: transparent;
+            border: none;
+            color: rgba(246,238,202,.5);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background .2s, color .2s;
+            white-space: nowrap;
+        }
+        .mode-btn.active { background: var(--yellow); color: var(--purple-dark); }
+
+        /* Size presets */
+        #size-options { display: flex; flex-direction: column; gap: 8px; }
+        .size-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+        .preset-btn {
+            background: rgba(131,40,133,.35);
+            border: 1.5px solid rgba(246,238,202,.15);
+            color: var(--cream);
+            border-radius: 8px;
+            padding: 7px 13px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background .2s, border-color .2s;
+        }
+        .preset-btn.active,
+        .preset-btn:hover { background: rgba(131,40,133,.65); border-color: rgba(246,238,202,.4); }
+
+        .custom-size {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .custom-size.visible { display: flex; }
+        .custom-size input {
+            background: rgba(131,40,133,.35);
+            border: 1.5px solid rgba(246,238,202,.15);
+            color: var(--cream);
+            border-radius: 8px;
+            padding: 7px 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            outline: none;
+            width: 72px;
+            text-align: center;
+            transition: border-color .2s;
+        }
+        .custom-size input:focus { border-color: rgba(246,238,202,.4); }
+        .custom-size input::placeholder { color: rgba(246,238,202,.3); }
+        .custom-size span { color: rgba(246,238,202,.5); font-size: 13px; }
+
+        /* Proportion checkbox */
+        .check-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-top: 2px;
+        }
+        .check-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--yellow);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .check-row label {
+            font-size: 13px;
+            color: var(--cream);
+            cursor: pointer;
+            line-height: 1.3;
+        }
+        .check-desc {
+            font-size: 11px;
+            color: rgba(246,238,202,.4);
+            font-style: italic;
+            margin-top: 2px;
+        }
+
+        /* Info bar */
+        .info-bar {
+            background: rgba(0,0,0,.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .info-icon { font-size: 16px; flex-shrink: 0; }
+        #info-text {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: rgba(246,238,202,.8);
+            line-height: 1.4;
+        }
+        #info-text .hl   { color: var(--yellow); font-weight: 900; }
+        #info-text .warn { color: var(--purple-light); }
+
+        /* ── VISTA PREVIA ── */
+        .preview-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px 22px;
+            box-shadow: 0 2px 10px rgba(90,35,98,.09);
+            margin-bottom: 16px;
+        }
+        .preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .preview-header h3 {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 800;
+            font-size: 15px;
+            color: var(--purple);
+        }
+        .preview-nav {
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+        .preview-nav.visible { display: flex; }
+        #preview-page-info {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            color: var(--text);
+            min-width: 82px;
+            text-align: center;
+        }
+        .nav-btn {
+            background: var(--purple);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s, opacity .2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .nav-btn:hover:not(:disabled) { background: var(--purple-dark); }
+        .nav-btn:disabled { opacity: .25; cursor: not-allowed; }
+        .preview-canvas-wrap {
+            display: flex;
+            justify-content: center;
+            background: #ece5f7;
+            border-radius: 12px;
+            padding: 20px 16px;
+        }
+        #preview-canvas {
+            border-radius: 3px;
+            box-shadow: 4px 4px 0 rgba(90,35,98,.1), 0 8px 24px rgba(90,35,98,.2);
+            max-width: 360px;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Generate / action buttons */
+        .generate-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+            margin-top: 0;
+        }
+        .btn-whatsapp {
+            background: #25D366;
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 13px 26px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background .2s, transform .18s, box-shadow .2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-whatsapp:hover:not(:disabled) {
+            background: #1ebe5d;
+            transform: scale(1.04);
+            box-shadow: 0 6px 22px rgba(37,211,102,.35);
+        }
+        .btn-whatsapp:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+        .btn-primary {
+            background: var(--yellow);
+            color: var(--purple-dark);
+            border: none;
+            border-radius: 50px;
+            padding: 13px 30px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background .2s, transform .18s, box-shadow .2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: var(--yellow-dark);
+            transform: scale(1.04);
+            box-shadow: 0 6px 22px rgba(234,190,89,.35);
+        }
+        .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+        .spinner {
+            width: 17px;
+            height: 17px;
+            border: 2.5px solid rgba(90,35,98,.25);
+            border-top-color: var(--purple-dark);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            display: none;
+            flex-shrink: 0;
+        }
+        .btn-primary.loading .spinner { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--purple-dark);
+            border-top: 2px solid var(--purple);
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .logo-sm { width: 24px; height: 24px; }
+        footer span {
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 12px;
+            color: rgba(246,238,202,.45);
+        }
+        footer strong { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(90px);
+            background: var(--purple-dark);
+            border: 1.5px solid var(--yellow);
+            color: var(--yellow);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0,0,0,.3);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { border-color: var(--purple-light); color: var(--purple-light); }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 600px) {
+            header { padding: 14px 18px; }
+            main { padding: 24px 16px 40px; }
+            .options-row { flex-direction: column; gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <div>
+        <div class="brand">Say Alejandro</div>
+        <div class="subtitle">Herramientas</div>
+    </div>
+    <div class="header-nav"><a href="index.html" class="nav-back">← Herramientas</a></div>
+</header>
+
+<!-- ═══ MAIN ═══ -->
+<main>
+    <h1>Organizador de Imágenes</h1>
+    <p class="page-desc">Subí tus imágenes, elegí el modo y descargá un PDF listo para imprimir en hoja carta.</p>
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept="image/*" multiple>
+        <span class="upload-icon">🖼️</span>
+        <h2>Arrastrá tus imágenes aquí</h2>
+        <p>JPG, PNG, WEBP · Máximo 25 imágenes</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar archivos</button>
+    </div>
+
+    <!-- Thumbnails -->
+    <div id="thumbs-section">
+        <div class="thumbs-header">
+            <h3 id="thumbs-title">0 imágenes cargadas</h3>
+            <button class="btn-add-more" id="btn-add-more">+ Agregar más</button>
+        </div>
+        <div class="thumbs-grid" id="thumbs-grid"></div>
+    </div>
+
+    <!-- Options + Preview + Generate -->
+    <div id="options-section">
+
+        <!-- Panel de opciones -->
+        <div class="action-bar">
+            <div class="options-row">
+
+                <!-- Modo -->
+                <div class="opt-group">
+                    <span class="opt-label">Modo</span>
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" id="btn-mode-size">Por tamaño</button>
+                        <button class="mode-btn" id="btn-mode-fit">Por hojas</button>
+                    </div>
+                </div>
+
+                <!-- Tamaño (solo en modo "Por tamaño") -->
+                <div class="opt-group" id="size-options">
+                    <span class="opt-label">Tamaño de cada imagen</span>
+                    <div class="size-presets">
+                        <button class="preset-btn active" data-w="5" data-h="5">5×5 cm</button>
+                        <button class="preset-btn" data-w="5" data-h="10">5×10 cm</button>
+                        <button class="preset-btn" data-custom>Personalizado</button>
+                    </div>
+                    <div class="custom-size" id="custom-size">
+                        <input type="number" id="custom-w" placeholder="ancho" min="1" max="19" step="0.5">
+                        <span>×</span>
+                        <input type="number" id="custom-h" placeholder="alto" min="1" max="25" step="0.5">
+                        <span>cm</span>
+                    </div>
+                </div>
+
+                <!-- Proporción + Auto-rotar -->
+                <div class="opt-group">
+                    <span class="opt-label">Imagen</span>
+                    <div class="check-row">
+                        <input type="checkbox" id="check-proportion" checked>
+                        <div>
+                            <label for="check-proportion">Mantener proporción original</label>
+                            <div class="check-desc" id="proportion-desc">La imagen se ajusta sin deformarse</div>
+                        </div>
+                    </div>
+                    <div class="check-row" style="margin-top:6px;">
+                        <input type="checkbox" id="check-autorotate" checked>
+                        <div>
+                            <label for="check-autorotate">Auto-rotar para mejor ajuste</label>
+                            <div class="check-desc">Gira 90° si cabe más grande así</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info bar -->
+            <div class="info-bar">
+                <span class="info-icon">📋</span>
+                <span id="info-text">Cargá imágenes para ver la distribución.</span>
+            </div>
+        </div>
+
+        <!-- Vista previa -->
+        <div class="preview-card">
+            <div class="preview-header">
+                <h3>Vista previa</h3>
+                <div class="preview-nav" id="preview-nav">
+                    <button class="nav-btn" id="prev-page-btn" disabled>‹</button>
+                    <span id="preview-page-info">Hoja 1 de 1</span>
+                    <button class="nav-btn" id="next-page-btn" disabled>›</button>
+                </div>
+            </div>
+            <div class="preview-canvas-wrap">
+                <canvas id="preview-canvas" width="360" height="465"></canvas>
+            </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="generate-row">
+            <button class="btn-whatsapp" id="btn-whatsapp" disabled>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                Enviar por WhatsApp
+            </button>
+            <button class="btn-primary" id="btn-generate" disabled>
+                <div class="spinner"></div>
+                <span id="btn-label">Descargar PDF</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTES ────────────────────────────────────────────────────────────────
+const CM       = 28.3465;
+const PAGE_W   = 21.59 * CM;
+const PAGE_H   = 27.94 * CM;
+const MARGIN   = 1.0  * CM;
+const GAP      = 0.4  * CM;
+const MAX_IMGS = 25;
+
+const USABLE_W = PAGE_W - MARGIN * 2;
+const USABLE_H = PAGE_H - MARGIN * 2;
+
+// Preview canvas dimensions (fixed logical size, CSS scales visually)
+const PREV_W = 360;
+const PREV_H = Math.round(PREV_W * PAGE_H / PAGE_W); // ~465
+
+// ── ESTADO ───────────────────────────────────────────────────────────────────
+let images      = [];       // [{ file, url }]
+let mode        = 'size';   // 'size' | 'fit'
+let cellW       = 5 * CM;
+let cellH       = 5 * CM;
+let previewPage = 0;
+const imgCache  = new Map(); // url → HTMLImageElement
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+const uploadZone     = document.getElementById('upload-zone');
+const fileInput      = document.getElementById('file-input');
+const thumbsSection  = document.getElementById('thumbs-section');
+const thumbsGrid     = document.getElementById('thumbs-grid');
+const thumbsTitle    = document.getElementById('thumbs-title');
+const optionsSection = document.getElementById('options-section');
+const sizeOptions    = document.getElementById('size-options');
+const customSizeEl   = document.getElementById('custom-size');
+const infoText       = document.getElementById('info-text');
+const btnGenerate    = document.getElementById('btn-generate');
+const btnLabel       = document.getElementById('btn-label');
+const btnWhatsapp    = document.getElementById('btn-whatsapp');
+const WA_NUMBER      = '584120935597';
+const checkProp       = document.getElementById('check-proportion');
+const propDesc        = document.getElementById('proportion-desc');
+const checkAutoRotate = document.getElementById('check-autorotate');
+const toastEl        = document.getElementById('toast');
+const previewCanvas  = document.getElementById('preview-canvas');
+const previewNav     = document.getElementById('preview-nav');
+const previewPageInfo = document.getElementById('preview-page-info');
+const btnPrev        = document.getElementById('prev-page-btn');
+const btnNext        = document.getElementById('next-page-btn');
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, isError = false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (isError ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────────────────
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-add-more').addEventListener('click', () => fileInput.click());
+
+uploadZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadZone.classList.add('drag-over');
+});
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    addFiles([...e.dataTransfer.files]);
+});
+
+fileInput.addEventListener('change', () => {
+    addFiles([...fileInput.files]);
+    fileInput.value = '';
+});
+
+function addFiles(files) {
+    const valid = files.filter(f => f.type.startsWith('image/'));
+    if (!valid.length) return showToast('Solo se aceptan imágenes (JPG, PNG, WEBP)', true);
+
+    const remaining = MAX_IMGS - images.length;
+    if (remaining <= 0) return showToast(`Ya tenés el máximo de ${MAX_IMGS} imágenes`, true);
+
+    const toAdd = valid.slice(0, remaining);
+    if (valid.length > remaining)
+        showToast(`Se agregaron ${toAdd.length} de ${valid.length} (límite: ${MAX_IMGS})`, true);
+
+    toAdd.forEach(file => {
+        images.push({ file, url: URL.createObjectURL(file) });
+    });
+
+    previewPage = 0;
+    renderThumbs();
+    updateUI();
+}
+
+function removeImage(index) {
+    const url = images[index].url;
+    URL.revokeObjectURL(url);
+    imgCache.delete(url);
+    images.splice(index, 1);
+    previewPage = 0;
+    renderThumbs();
+    updateUI();
+}
+
+function renderThumbs() {
+    thumbsGrid.innerHTML = '';
+    images.forEach((img, i) => {
+        const div = document.createElement('div');
+        div.className = 'thumb-item';
+        div.innerHTML = `
+            <img src="${img.url}" alt="imagen ${i + 1}">
+            <span class="thumb-num">${i + 1}</span>
+            <button class="thumb-remove" title="Quitar imagen">✕</button>
+        `;
+        div.querySelector('.thumb-remove').addEventListener('click', () => removeImage(i));
+        thumbsGrid.appendChild(div);
+    });
+    const n = images.length;
+    thumbsTitle.textContent = `${n} imagen${n !== 1 ? 'es' : ''} cargada${n !== 1 ? 's' : ''}`;
+}
+
+function updateUI() {
+    const has = images.length > 0;
+    thumbsSection.style.display  = has ? 'block' : 'none';
+    optionsSection.style.display = has ? 'block' : 'none';
+    if (has) updateInfo();
+}
+
+// ── MODO ──────────────────────────────────────────────────────────────────────
+document.getElementById('btn-mode-size').addEventListener('click', () => setMode('size'));
+document.getElementById('btn-mode-fit').addEventListener('click',  () => setMode('fit'));
+
+function setMode(m) {
+    mode = m;
+    document.getElementById('btn-mode-size').classList.toggle('active', m === 'size');
+    document.getElementById('btn-mode-fit').classList.toggle('active',  m === 'fit');
+    sizeOptions.style.display = m === 'size' ? 'flex' : 'none';
+    previewPage = 0;
+    updateInfo();
+}
+
+// ── PRESETS DE TAMAÑO ─────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if (btn.hasAttribute('data-custom')) {
+            customSizeEl.classList.add('visible');
+            readCustomSize();
+        } else {
+            customSizeEl.classList.remove('visible');
+            cellW = parseFloat(btn.dataset.w) * CM;
+            cellH = parseFloat(btn.dataset.h) * CM;
+        }
+        previewPage = 0;
+        updateInfo();
+    });
+});
+
+['custom-w', 'custom-h'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+        readCustomSize();
+        previewPage = 0;
+        schedulePreview();
+    });
+});
+
+function readCustomSize() {
+    const w = parseFloat(document.getElementById('custom-w').value);
+    const h = parseFloat(document.getElementById('custom-h').value);
+    if (w > 0) cellW = w * CM;
+    if (h > 0) cellH = h * CM;
+}
+
+checkProp.addEventListener('change', () => {
+    propDesc.textContent = checkProp.checked
+        ? 'La imagen se ajusta sin deformarse'
+        : 'La imagen se estira para llenar el espacio exacto';
+    updateInfo();
+});
+checkAutoRotate.addEventListener('change', updateInfo);
+
+// ── CÁLCULO DE LAYOUT ─────────────────────────────────────────────────────────
+function calcBySize(n, cw, ch) {
+    const cols    = Math.max(1, Math.floor((USABLE_W + GAP) / (cw + GAP)));
+    const rows    = Math.max(1, Math.floor((USABLE_H + GAP) / (ch + GAP)));
+    const perPage = cols * rows;
+    const pages   = Math.ceil(n / perPage);
+    return { cols, rows, perPage, pages, cellW: cw, cellH: ch };
+}
+
+function calcByFit(n) {
+    let best = null;
+    for (let cols = 1; cols <= 7; cols++) {
+        for (let rows = 1; rows <= 7; rows++) {
+            const perPage = cols * rows;
+            if (perPage > MAX_IMGS || perPage < 1) continue;
+            const cw   = (USABLE_W - GAP * (cols - 1)) / cols;
+            const ch   = (USABLE_H - GAP * (rows - 1)) / rows;
+            if (cw <= 0 || ch <= 0) continue;
+            const area  = cw * ch;
+            const pages = Math.ceil(n / perPage);
+            if (!best || pages < best.pages || (pages === best.pages && area > best.area)) {
+                best = { cols, rows, perPage, pages, cellW: cw, cellH: ch, area };
+            }
+        }
+    }
+    return best;
+}
+
+function getLayout() {
+    const n = images.length;
+    if (!n) return null;
+    return mode === 'size' ? calcBySize(n, cellW, cellH) : calcByFit(n);
+}
+
+// Devuelve true si rotar 90° la imagen produce un factor de escala mayor dentro de la celda
+function shouldRotate(imgW, imgH, cw, ch) {
+    const scaleNormal  = Math.min(cw / imgW, ch / imgH);
+    const scaleRotated = Math.min(cw / imgH, ch / imgW);
+    return scaleRotated > scaleNormal;
+}
+
+function updateInfo() {
+    const n = images.length;
+    if (!n) return;
+
+    const layout = getLayout();
+    if (!layout) return;
+
+    const wCm = (layout.cellW / CM).toFixed(1);
+    const hCm = (layout.cellH / CM).toFixed(1);
+    const p   = layout.pages;
+    const pp  = layout.perPage;
+
+    let html;
+    if (mode === 'size') {
+        if (pp < 1) {
+            html = `<span class="warn">⚠ El tamaño elegido es demasiado grande para la hoja carta.</span>`;
+            btnGenerate.disabled = true;
+            infoText.innerHTML = html;
+            return;
+        }
+        html = `<span class="hl">${n}</span> imagen${n !== 1 ? 'es' : ''} · <span class="hl">${pp}</span> por hoja · <span class="hl">${p}</span> hoja${p !== 1 ? 's' : ''} en total`;
+    } else {
+        html = `<span class="hl">${n}</span> imagen${n !== 1 ? 'es' : ''} en <span class="hl">${p}</span> hoja${p !== 1 ? 's' : ''} · cada imagen aprox. <span class="hl">${wCm}×${hCm} cm</span>`;
+    }
+
+    infoText.innerHTML = html;
+    btnGenerate.disabled = false;
+    btnWhatsapp.disabled = false;
+    schedulePreview();
+}
+
+// ── VISTA PREVIA ──────────────────────────────────────────────────────────────
+let previewTimer;
+function schedulePreview() {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreview, 120);
+}
+
+function loadImgEl(url) {
+    if (imgCache.has(url)) return Promise.resolve(imgCache.get(url));
+    return new Promise((resolve, reject) => {
+        const el = new Image();
+        el.onload  = () => { imgCache.set(url, el); resolve(el); };
+        el.onerror = reject;
+        el.src = url;
+    });
+}
+
+async function renderPreview() {
+    const ctx    = previewCanvas.getContext('2d');
+    const layout = getLayout();
+
+    previewCanvas.width  = PREV_W;
+    previewCanvas.height = PREV_H;
+
+    if (!layout || !images.length) {
+        ctx.clearRect(0, 0, PREV_W, PREV_H);
+        return;
+    }
+
+    const { cols, perPage, pages, cellW: cw, cellH: ch } = layout;
+    const keepProp = checkProp.checked;
+    const S = PREV_W / PAGE_W; // scale factor: points → preview pixels
+
+    // Clamp current page
+    if (previewPage >= pages) previewPage = pages - 1;
+    if (previewPage < 0)      previewPage = 0;
+
+    // Update nav
+    previewNav.classList.toggle('visible', pages > 1);
+    previewPageInfo.textContent = `Hoja ${previewPage + 1} de ${pages}`;
+    btnPrev.disabled = previewPage === 0;
+    btnNext.disabled = previewPage === pages - 1;
+
+    // Pre-cargar todas las imágenes de esta página en paralelo
+    const startIdx = previewPage * perPage;
+    const pageImgEls = await Promise.all(
+        Array.from({ length: perPage }, (_, slot) => {
+            const idx = startIdx + slot;
+            return idx < images.length ? loadImgEl(images[idx].url).catch(() => null) : Promise.resolve(null);
+        })
+    );
+
+    // Dibujar fondo de página
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, PREV_W, PREV_H);
+
+    // Dibujar imágenes slot por slot
+    for (let slot = 0; slot < perPage; slot++) {
+        const imgIdx = startIdx + slot;
+        const col = slot % cols;
+        const row = Math.floor(slot / cols);
+
+        const cx = (MARGIN + col * (cw + GAP)) * S;
+        const cy = (MARGIN + row * (ch + GAP)) * S;
+        const cws = cw * S;
+        const chs = ch * S;
+
+        const imgEl = pageImgEls[slot];
+
+        if (!imgEl) {
+            // Slot vacío — guía punteada
+            ctx.save();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(131,40,133,.18)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(cx + 0.5, cy + 0.5, cws - 1, chs - 1);
+            ctx.restore();
+            continue;
+        }
+
+        // Fondo de celda
+        ctx.fillStyle = '#f0ebf8';
+        ctx.fillRect(cx, cy, cws, chs);
+
+        // Dibujar imagen (con rotación automática si aplica)
+        const autoRot = keepProp && checkAutoRotate.checked
+            && shouldRotate(imgEl.naturalWidth, imgEl.naturalHeight, cws, chs);
+
+        ctx.save();
+        ctx.rect(cx, cy, cws, chs);
+        ctx.clip();
+
+        if (autoRot) {
+            const s = Math.min(cws / imgEl.naturalHeight, chs / imgEl.naturalWidth);
+            ctx.translate(cx + cws / 2, cy + chs / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(imgEl,
+                -imgEl.naturalWidth  * s / 2,
+                -imgEl.naturalHeight * s / 2,
+                imgEl.naturalWidth   * s,
+                imgEl.naturalHeight  * s
+            );
+        } else if (keepProp) {
+            const s  = Math.min(cws / imgEl.naturalWidth, chs / imgEl.naturalHeight);
+            const dw = imgEl.naturalWidth  * s;
+            const dh = imgEl.naturalHeight * s;
+            ctx.drawImage(imgEl, cx + (cws - dw) / 2, cy + (chs - dh) / 2, dw, dh);
+        } else {
+            ctx.drawImage(imgEl, cx, cy, cws, chs);
+        }
+
+        ctx.restore();
+
+        // Badge con número de imagen
+        const badgeW = imgIdx + 1 >= 10 ? 20 : 16;
+        ctx.fillStyle = 'rgba(90,35,98,.8)';
+        ctx.beginPath();
+        ctx.roundRect(cx + 3, cy + 3, badgeW, 13, 3);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold 8px sans-serif`;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(imgIdx + 1, cx + 5, cy + 10);
+    }
+}
+
+// Navegación de páginas
+btnPrev.addEventListener('click', () => {
+    if (previewPage > 0) { previewPage--; renderPreview(); }
+});
+btnNext.addEventListener('click', () => {
+    const layout = getLayout();
+    if (layout && previewPage < layout.pages - 1) { previewPage++; renderPreview(); }
+});
+
+// ── CONVERSIÓN A JPEG VÍA CANVAS ──────────────────────────────────────────────
+// rotate90: pre-rota la imagen en canvas antes de embedir, así pdf-lib la ve ya girada
+function toJpegBytes(url, rotate90 = false) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            if (rotate90) {
+                canvas.width  = img.naturalHeight;
+                canvas.height = img.naturalWidth;
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI / 2);
+                ctx.drawImage(img,
+                    -img.naturalWidth  / 2,
+                    -img.naturalHeight / 2,
+                    img.naturalWidth,
+                    img.naturalHeight
+                );
+            } else {
+                canvas.width  = img.naturalWidth;
+                canvas.height = img.naturalHeight;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+            }
+            canvas.toBlob(blob => {
+                if (!blob) return reject(new Error('toBlob falló'));
+                blob.arrayBuffer().then(buf => resolve({
+                    bytes: buf,
+                    w: canvas.width,
+                    h: canvas.height
+                })).catch(reject);
+            }, 'image/jpeg', 0.92);
+        };
+        img.onerror = () => reject(new Error('No se pudo cargar la imagen'));
+        img.src = url;
+    });
+}
+
+// ── GENERAR PDF ───────────────────────────────────────────────────────────────
+
+// Núcleo: construye y devuelve el Blob del PDF
+async function buildPDF() {
+    const keepProp = checkProp.checked;
+    const layout   = getLayout();
+    if (!layout) throw new Error('Layout inválido');
+
+    const { cols, perPage, pages, cellW: cw, cellH: ch } = layout;
+    const pdfDoc = await PDFLib.PDFDocument.create();
+
+    const loaded = await Promise.all(images.map(async img => {
+        const el       = await loadImgEl(img.url);
+        const rotate90 = keepProp && checkAutoRotate.checked
+            && shouldRotate(el.naturalWidth, el.naturalHeight, cw, ch);
+        const result   = await toJpegBytes(img.url, rotate90);
+        const embedded = await pdfDoc.embedJpg(result.bytes);
+        return { embedded, w: result.w, h: result.h };
+    }));
+
+    for (let pageIdx = 0; pageIdx < pages; pageIdx++) {
+        const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+
+        for (let slot = 0; slot < perPage; slot++) {
+            const imgIdx = pageIdx * perPage + slot;
+            if (imgIdx >= images.length) break;
+
+            const col  = slot % cols;
+            const row  = Math.floor(slot / cols);
+            const cellX = MARGIN + col * (cw + GAP);
+            const cellY = PAGE_H - MARGIN - (row + 1) * ch - row * GAP;
+
+            const { embedded, w: iw, h: ih } = loaded[imgIdx];
+            let drawX = cellX, drawY = cellY, drawW = cw, drawH = ch;
+
+            if (keepProp) {
+                const s = Math.min(cw / iw, ch / ih);
+                drawW = iw * s;
+                drawH = ih * s;
+                drawX = cellX + (cw - drawW) / 2;
+                drawY = cellY + (ch - drawH) / 2;
+            }
+
+            page.drawImage(embedded, { x: drawX, y: drawY, width: drawW, height: drawH });
+        }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return { blob: new Blob([pdfBytes], { type: 'application/pdf' }), pages };
+}
+
+function setActionsBusy(busy, labelText) {
+    btnGenerate.disabled = busy;
+    btnWhatsapp.disabled = busy;
+    btnGenerate.classList.toggle('loading', busy);
+    btnLabel.textContent = labelText;
+}
+
+// Botón descargar
+btnGenerate.addEventListener('click', async () => {
+    if (!images.length) return;
+    setActionsBusy(true, 'Generando…');
+    try {
+        const { blob, pages } = await buildPDF();
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href = url; a.download = 'imagenes-say-alejandro.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`✔ PDF generado · ${pages} hoja${pages !== 1 ? 's' : ''}`);
+    } catch (err) {
+        console.error(err);
+        showToast('Error al generar el PDF. Revisá las imágenes.', true);
+    } finally {
+        setActionsBusy(false, 'Descargar PDF');
+        updateInfo();
+    }
+});
+
+// Botón WhatsApp
+btnWhatsapp.addEventListener('click', async () => {
+    if (!images.length) return;
+    setActionsBusy(true, 'Generando…');
+    try {
+        const { blob, pages } = await buildPDF();
+        const file = new File([blob], 'imagenes-say-alejandro.pdf', { type: 'application/pdf' });
+
+        // Móvil: Web Share API — el archivo va directo al share sheet sin descargarse
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'Imágenes Say Alejandro' });
+            return;
+        }
+
+        // Escritorio (fallback): descargar + abrir chat
+        const url = URL.createObjectURL(blob);
+        const a   = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        window.open(`https://wa.me/${WA_NUMBER}`, '_blank');
+        showToast(`PDF descargado · Adjuntalo en el chat de Say Alejandro`);
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error(err);
+            showToast('Error al generar el PDF.', true);
+        }
+    } finally {
+        setActionsBusy(false, 'Descargar PDF');
+        updateInfo();
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marca de agua — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        :root {
+            --purple:       #832885;
+            --purple-dark:  #5A2362;
+            --purple-light: #EC6AFF;
+            --yellow:       #EFDB5D;
+            --yellow-dark:  #EABE59;
+            --cream:        #F6EECA;
+            --text:         #3a1a4d;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; font-family: 'DM Sans', sans-serif; color: var(--text); }
+
+        header { background: var(--purple); display: flex; align-items: center; gap: 14px; padding: 15px 36px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(90,35,98,.2); }
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .brand { font-family: 'Titan One', cursive; font-size: 20px; color: var(--yellow); line-height: 1; }
+        .subtitle { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 10px; color: rgba(246,238,202,.5); letter-spacing: .14em; text-transform: uppercase; }
+        .header-nav { margin-left: auto; }
+        .nav-back { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.5); text-decoration: none; padding: 6px 14px; border: 1.5px solid rgba(246,238,202,.15); border-radius: 50px; transition: color .15s, border-color .15s; white-space: nowrap; }
+        .nav-back:hover { color: var(--cream); border-color: rgba(246,238,202,.35); }
+
+        main { flex: 1; padding: 32px 24px 48px; max-width: 900px; margin: 0 auto; width: 100%; }
+        h1 { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 26px; color: var(--purple); margin-bottom: 6px; letter-spacing: -.015em; }
+        .page-desc { font-size: 14px; opacity: .7; margin-bottom: 28px; }
+
+        .upload-zone { background: #fff; border: 2.5px dashed rgba(131,40,133,.3); border-radius: 20px; padding: 44px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 24px; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--purple); background: rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display: none; }
+        .upload-icon { font-size: 42px; margin-bottom: 14px; display: block; }
+        .upload-zone h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 17px; color: var(--purple); margin-bottom: 6px; }
+        .upload-zone p { font-size: 13px; opacity: .6; }
+        .btn-browse { display: inline-block; margin-top: 18px; background: var(--purple); color: #fff; padding: 9px 22px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer; transition: background .2s; border: none; }
+        .btn-browse:hover { background: var(--purple-dark); }
+
+        #file-info { display: none; background: #fff; border-radius: 16px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(90,35,98,.08); }
+        .file-meta { display: flex; align-items: center; gap: 14px; }
+        .file-icon { font-size: 28px; flex-shrink: 0; }
+        .file-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; color: var(--purple); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+        .file-pages { font-size: 12px; opacity: .55; margin-top: 2px; }
+        .btn-change { margin-left: auto; background: transparent; color: rgba(58,26,77,.5); border: 1.5px solid rgba(58,26,77,.18); border-radius: 50px; padding: 6px 14px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; transition: border-color .2s, color .2s; flex-shrink: 0; }
+        .btn-change:hover { border-color: var(--purple); color: var(--purple); }
+
+        #work-area { display: none; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+        #work-area.visible { display: flex; }
+
+        /* Preview */
+        .preview-col { flex: 0 0 auto; }
+        .preview-wrap { position: relative; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 18px rgba(90,35,98,.13); display: inline-block; line-height: 0; }
+        #preview-canvas { display: block; max-width: 230px; height: auto; }
+        .wm-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; overflow: hidden; }
+        #wm-preview-text { font-family: 'Nunito', sans-serif; font-weight: 900; white-space: nowrap; pointer-events: none; line-height: 1; }
+        .preview-label { text-align: center; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 11px; color: rgba(90,35,98,.4); margin-top: 10px; letter-spacing: .05em; }
+
+        /* Options */
+        .options-col { flex: 1; min-width: 260px; }
+        .action-bar { background: var(--purple-dark); border-radius: 16px; padding: 22px 24px; }
+        .opt-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+        .opt-group:last-child { margin-bottom: 0; }
+        .opt-label { font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; color: rgba(246,238,202,.5); text-transform: uppercase; letter-spacing: .1em; display: flex; justify-content: space-between; align-items: center; }
+        .opt-val { color: var(--yellow); }
+
+        .wm-input { background: rgba(131,40,133,.35); border: 1.5px solid rgba(246,238,202,.15); color: var(--cream); border-radius: 10px; padding: 10px 14px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; outline: none; width: 100%; transition: border-color .2s; }
+        .wm-input:focus { border-color: rgba(246,238,202,.4); }
+        .wm-input::placeholder { color: rgba(246,238,202,.3); }
+
+        input[type="range"] { width: 100%; accent-color: var(--yellow); cursor: pointer; height: 4px; }
+
+        .tog-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tog-btn { background: rgba(131,40,133,.35); border: 1.5px solid rgba(246,238,202,.15); color: rgba(246,238,202,.6); border-radius: 8px; padding: 7px 14px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 12px; cursor: pointer; transition: background .2s, border-color .2s, color .2s; }
+        .tog-btn.active { background: var(--yellow); border-color: var(--yellow); color: var(--purple-dark); }
+        .tog-btn:hover:not(.active) { border-color: rgba(246,238,202,.35); color: var(--cream); }
+
+        .generate-row { display: flex; justify-content: flex-end; margin-top: 20px; }
+        .btn-primary { background: var(--yellow); color: var(--purple-dark); border: none; border-radius: 50px; padding: 13px 30px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px; cursor: pointer; transition: background .2s, transform .18s, box-shadow .2s; display: flex; align-items: center; gap: 10px; }
+        .btn-primary:hover:not(:disabled) { background: var(--yellow-dark); transform: scale(1.04); box-shadow: 0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+        .spinner { width: 17px; height: 17px; border: 2.5px solid rgba(90,35,98,.25); border-top-color: var(--purple-dark); border-radius: 50%; animation: spin .7s linear infinite; display: none; flex-shrink: 0; }
+        .btn-primary.loading .spinner { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { background: var(--purple-dark); border-top: 2px solid var(--purple); padding: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .logo-sm { width: 24px; height: 24px; }
+        footer span { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.45); }
+        footer strong { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); }
+
+        .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--purple-dark); border: 1.5px solid var(--yellow); color: var(--yellow); padding: 12px 24px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,.3); white-space: nowrap; pointer-events: none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { border-color: var(--purple-light); color: var(--purple-light); }
+
+        @media (max-width: 600px) {
+            header { padding: 14px 18px; }
+            main { padding: 24px 16px 40px; }
+            #work-area.visible { flex-direction: column; }
+            .preview-col { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <div>
+        <div class="brand">Say Alejandro</div>
+        <div class="subtitle">Herramientas</div>
+    </div>
+    <div class="header-nav">
+        <a href="index.html" class="nav-back">← Herramientas</a>
+    </div>
+</header>
+
+<main>
+    <h1>Marca de agua</h1>
+    <p class="page-desc">Agrega texto superpuesto en diagonal a todas las páginas de tu PDF.</p>
+
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf">
+        <span class="upload-icon">📄</span>
+        <h2>Arrastrá tu PDF aquí</h2>
+        <p>Solo archivos PDF</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar PDF</button>
+    </div>
+
+    <div id="file-info">
+        <div class="file-meta">
+            <span class="file-icon">📄</span>
+            <div style="min-width:0;flex:1">
+                <div class="file-name" id="file-name-text"></div>
+                <div class="file-pages" id="file-pages-text"></div>
+            </div>
+            <button class="btn-change" id="btn-change">Cambiar</button>
+        </div>
+    </div>
+
+    <div id="work-area">
+        <div class="preview-col">
+            <div class="preview-wrap" id="preview-wrap">
+                <canvas id="preview-canvas"></canvas>
+                <div class="wm-overlay">
+                    <span id="wm-preview-text">CONFIDENCIAL</span>
+                </div>
+            </div>
+            <div class="preview-label">Vista previa · pág. 1</div>
+        </div>
+
+        <div class="options-col">
+            <div class="action-bar">
+
+                <div class="opt-group">
+                    <span class="opt-label">Texto de la marca</span>
+                    <input class="wm-input" id="wm-text" type="text" placeholder="ej. CONFIDENCIAL" maxlength="40" value="CONFIDENCIAL">
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Tamaño <span class="opt-val" id="val-size">48 pt</span></span>
+                    <input type="range" id="sl-size" min="18" max="80" value="48" step="2">
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Opacidad <span class="opt-val" id="val-opacity">30%</span></span>
+                    <input type="range" id="sl-opacity" min="5" max="70" value="30" step="5">
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Ángulo</span>
+                    <div class="tog-row">
+                        <button class="tog-btn active" data-angle="45">↗ Diagonal</button>
+                        <button class="tog-btn" data-angle="-45">↘ Inversa</button>
+                        <button class="tog-btn" data-angle="0">→ Horizontal</button>
+                    </div>
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Color</span>
+                    <div class="tog-row">
+                        <button class="tog-btn active" data-color="dark">Oscuro</button>
+                        <button class="tog-btn" data-color="light">Claro</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="generate-row">
+                <button class="btn-primary" id="btn-generate">
+                    <div class="spinner"></div>
+                    <span id="btn-label">Descargar PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+let pdfBytes = null;
+let pdfJS   = null;
+let fileName = 'documento';
+
+let wmText    = 'CONFIDENCIAL';
+let wmSize    = 48;
+let wmOpacity = 0.30;
+let wmAngle   = 45;
+let wmColor   = 'dark';
+
+const uploadZone   = document.getElementById('upload-zone');
+const fileInput    = document.getElementById('file-input');
+const fileInfo     = document.getElementById('file-info');
+const workArea     = document.getElementById('work-area');
+const previewCanvas = document.getElementById('preview-canvas');
+const previewText  = document.getElementById('wm-preview-text');
+const wmTextEl     = document.getElementById('wm-text');
+const slSize       = document.getElementById('sl-size');
+const slOpacity    = document.getElementById('sl-opacity');
+const valSize      = document.getElementById('val-size');
+const valOpacity   = document.getElementById('val-opacity');
+const btnGenerate  = document.getElementById('btn-generate');
+const btnLabel     = document.getElementById('btn-label');
+const toastEl      = document.getElementById('toast');
+
+let toastTimer;
+function showToast(msg, err = false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-change').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { handleFile(fileInput.files[0]); fileInput.value = ''; });
+
+async function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') return showToast('Seleccioná un archivo PDF', true);
+    const arr = await file.arrayBuffer();
+    pdfBytes = new Uint8Array(arr);
+    fileName = file.name.replace(/\.pdf$/i, '');
+    pdfJS = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+    const total = pdfJS.numPages;
+    document.getElementById('file-name-text').textContent = file.name;
+    document.getElementById('file-pages-text').textContent = `${total} página${total !== 1 ? 's' : ''}`;
+    uploadZone.style.display = 'none';
+    fileInfo.style.display = 'block';
+    workArea.classList.add('visible');
+    await renderPreview();
+    updateOverlay();
+}
+
+async function renderPreview() {
+    const page = await pdfJS.getPage(1);
+    const vp = page.getViewport({ scale: 0.55 });
+    previewCanvas.width  = vp.width;
+    previewCanvas.height = vp.height;
+    await page.render({ canvasContext: previewCanvas.getContext('2d'), viewport: vp }).promise;
+}
+
+function updateOverlay() {
+    const canvW = previewCanvas.width || 230;
+    const scale = canvW / 595;
+    const displayPx = Math.max(8, wmSize * scale * 1.9);
+    const cssAngle = -wmAngle; // CSS is clockwise, PDF is CCW
+    const colorVal = wmColor === 'dark' ? '#3a1a4d' : '#F6EECA';
+    previewText.textContent = wmText || 'Texto';
+    previewText.style.fontSize  = displayPx + 'px';
+    previewText.style.opacity   = wmOpacity;
+    previewText.style.color     = colorVal;
+    previewText.style.transform = `rotate(${cssAngle}deg)`;
+    previewText.style.textShadow = wmColor === 'light' ? '0 1px 4px rgba(0,0,0,.35)' : 'none';
+}
+
+wmTextEl.addEventListener('input', () => { wmText = wmTextEl.value; updateOverlay(); });
+
+slSize.addEventListener('input', () => {
+    wmSize = parseInt(slSize.value);
+    valSize.textContent = wmSize + ' pt';
+    updateOverlay();
+});
+
+slOpacity.addEventListener('input', () => {
+    wmOpacity = parseInt(slOpacity.value) / 100;
+    valOpacity.textContent = parseInt(slOpacity.value) + '%';
+    updateOverlay();
+});
+
+document.querySelectorAll('[data-angle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-angle]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        wmAngle = parseInt(btn.dataset.angle);
+        updateOverlay();
+    });
+});
+
+document.querySelectorAll('[data-color]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-color]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        wmColor = btn.dataset.color;
+        updateOverlay();
+    });
+});
+
+btnGenerate.addEventListener('click', async () => {
+    if (!pdfBytes) return;
+    const text = wmTextEl.value.trim();
+    if (!text) return showToast('Escribí el texto de la marca de agua', true);
+
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    btnLabel.textContent = 'Procesando…';
+
+    try {
+        const { PDFDocument, rgb, StandardFonts, degrees } = PDFLib;
+        const doc  = await PDFDocument.load(pdfBytes);
+        const font = await doc.embedFont(StandardFonts.HelveticaBold);
+        const pages = doc.getPages();
+
+        const color = wmColor === 'dark'
+            ? rgb(0.227, 0.102, 0.302)
+            : rgb(0.965, 0.937, 0.792);
+
+        const angleRad = wmAngle * Math.PI / 180;
+
+        pages.forEach(page => {
+            const { width, height } = page.getSize();
+            const tw = font.widthOfTextAtSize(text, wmSize);
+            // Center the rotated text on the page
+            const cx = width  / 2;
+            const cy = height / 2;
+            const x  = cx - (tw  / 2) * Math.cos(angleRad) + (wmSize / 2) * Math.sin(angleRad);
+            const y  = cy - (tw  / 2) * Math.sin(angleRad) - (wmSize / 2) * Math.cos(angleRad);
+            page.drawText(text, { x, y, size: wmSize, font, color, opacity: wmOpacity, rotate: degrees(wmAngle) });
+        });
+
+        const bytes = await doc.save();
+        const blob  = new Blob([bytes], { type: 'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = `${fileName}-marca-agua.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`✔ PDF descargado · ${pages.length} página${pages.length !== 1 ? 's' : ''}`);
+    } catch (err) {
+        console.error(err);
+        showToast('Error al procesar el PDF. Intentá con otro archivo.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        btnLabel.textContent = 'Descargar PDF';
+    }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proteger PDF — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        :root {
+            --purple:       #832885;
+            --purple-dark:  #5A2362;
+            --purple-light: #EC6AFF;
+            --yellow:       #EFDB5D;
+            --yellow-dark:  #EABE59;
+            --cream:        #F6EECA;
+            --text:         #3a1a4d;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; font-family: 'DM Sans', sans-serif; color: var(--text); }
+
+        header { background: var(--purple); display: flex; align-items: center; gap: 14px; padding: 15px 36px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(90,35,98,.2); }
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .brand { font-family: 'Titan One', cursive; font-size: 20px; color: var(--yellow); line-height: 1; }
+        .subtitle { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 10px; color: rgba(246,238,202,.5); letter-spacing: .14em; text-transform: uppercase; }
+        .header-nav { margin-left: auto; }
+        .nav-back { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.5); text-decoration: none; padding: 6px 14px; border: 1.5px solid rgba(246,238,202,.15); border-radius: 50px; transition: color .15s, border-color .15s; white-space: nowrap; }
+        .nav-back:hover { color: var(--cream); border-color: rgba(246,238,202,.35); }
+
+        main { flex: 1; padding: 32px 24px 48px; max-width: 640px; margin: 0 auto; width: 100%; }
+        h1 { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 26px; color: var(--purple); margin-bottom: 6px; letter-spacing: -.015em; }
+        .page-desc { font-size: 14px; opacity: .7; margin-bottom: 28px; }
+
+        .upload-zone { background: #fff; border: 2.5px dashed rgba(131,40,133,.3); border-radius: 20px; padding: 44px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 24px; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--purple); background: rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display: none; }
+        .upload-icon { font-size: 42px; margin-bottom: 14px; display: block; }
+        .upload-zone h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 17px; color: var(--purple); margin-bottom: 6px; }
+        .upload-zone p { font-size: 13px; opacity: .6; }
+        .btn-browse { display: inline-block; margin-top: 18px; background: var(--purple); color: #fff; padding: 9px 22px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer; transition: background .2s; border: none; }
+        .btn-browse:hover { background: var(--purple-dark); }
+
+        #file-info { display: none; background: #fff; border-radius: 16px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(90,35,98,.08); }
+        .file-meta { display: flex; align-items: center; gap: 14px; }
+        .file-icon { font-size: 28px; flex-shrink: 0; }
+        .file-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; color: var(--purple); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+        .file-pages { font-size: 12px; opacity: .55; margin-top: 2px; }
+        .btn-change { margin-left: auto; background: transparent; color: rgba(58,26,77,.5); border: 1.5px solid rgba(58,26,77,.18); border-radius: 50px; padding: 6px 14px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; transition: border-color .2s, color .2s; flex-shrink: 0; }
+        .btn-change:hover { border-color: var(--purple); color: var(--purple); }
+
+        #options-section { display: none; }
+        .action-bar { background: var(--purple-dark); border-radius: 16px; padding: 26px 28px; margin-bottom: 16px; }
+
+        .opt-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+        .opt-group:last-child { margin-bottom: 0; }
+        .opt-label { font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; color: rgba(246,238,202,.5); text-transform: uppercase; letter-spacing: .1em; }
+
+        /* Password field */
+        .pass-wrap { position: relative; }
+        .pass-input {
+            width: 100%;
+            background: rgba(131,40,133,.35);
+            border: 1.5px solid rgba(246,238,202,.15);
+            color: var(--cream);
+            border-radius: 10px;
+            padding: 12px 44px 12px 16px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s;
+            letter-spacing: .04em;
+        }
+        .pass-input:focus { border-color: rgba(246,238,202,.45); }
+        .pass-input::placeholder { color: rgba(246,238,202,.3); letter-spacing: 0; }
+        .pass-input.error { border-color: var(--purple-light); }
+        .eye-btn {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(246,238,202,.4);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+            transition: color .15s;
+            line-height: 1;
+        }
+        .eye-btn:hover { color: rgba(246,238,202,.7); }
+
+        .pass-hint { font-size: 12px; color: rgba(246,238,202,.35); margin-top: 4px; }
+        .pass-error { font-size: 12px; color: var(--purple-light); margin-top: 4px; display: none; }
+
+        /* Permissions */
+        .perm-list { display: flex; flex-direction: column; gap: 10px; }
+        .perm-row { display: flex; align-items: center; gap: 10px; }
+        .perm-row input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--yellow); cursor: pointer; flex-shrink: 0; }
+        .perm-row label { font-size: 13px; color: rgba(246,238,202,.8); cursor: pointer; line-height: 1.3; }
+
+        /* Info note */
+        .info-note { display: flex; align-items: flex-start; gap: 10px; background: rgba(0,0,0,.15); border-radius: 10px; padding: 12px 14px; margin-top: 20px; }
+        .info-note-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+        .info-note p { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.6); line-height: 1.5; }
+
+        .generate-row { display: flex; justify-content: flex-end; }
+        .btn-primary { background: var(--yellow); color: var(--purple-dark); border: none; border-radius: 50px; padding: 13px 30px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px; cursor: pointer; transition: background .2s, transform .18s, box-shadow .2s; display: flex; align-items: center; gap: 10px; }
+        .btn-primary:hover:not(:disabled) { background: var(--yellow-dark); transform: scale(1.04); box-shadow: 0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+        .spinner { width: 17px; height: 17px; border: 2.5px solid rgba(90,35,98,.25); border-top-color: var(--purple-dark); border-radius: 50%; animation: spin .7s linear infinite; display: none; flex-shrink: 0; }
+        .btn-primary.loading .spinner { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { background: var(--purple-dark); border-top: 2px solid var(--purple); padding: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .logo-sm { width: 24px; height: 24px; }
+        footer span { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.45); }
+        footer strong { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); }
+
+        .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--purple-dark); border: 1.5px solid var(--yellow); color: var(--yellow); padding: 12px 24px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,.3); white-space: nowrap; pointer-events: none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { border-color: var(--purple-light); color: var(--purple-light); }
+
+        @media (max-width: 600px) {
+            header { padding: 14px 18px; }
+            main { padding: 24px 16px 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <div>
+        <div class="brand">Say Alejandro</div>
+        <div class="subtitle">Herramientas</div>
+    </div>
+    <div class="header-nav">
+        <a href="index.html" class="nav-back">← Herramientas</a>
+    </div>
+</header>
+
+<main>
+    <h1>Proteger PDF</h1>
+    <p class="page-desc">Encriptá tu PDF con contraseña para que solo vos puedas abrirlo.</p>
+
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf">
+        <span class="upload-icon">🔒</span>
+        <h2>Arrastrá tu PDF aquí</h2>
+        <p>Solo archivos PDF</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar PDF</button>
+    </div>
+
+    <div id="file-info">
+        <div class="file-meta">
+            <span class="file-icon">📄</span>
+            <div style="min-width:0;flex:1">
+                <div class="file-name" id="file-name-text"></div>
+                <div class="file-pages" id="file-pages-text"></div>
+            </div>
+            <button class="btn-change" id="btn-change">Cambiar</button>
+        </div>
+    </div>
+
+    <div id="options-section">
+        <div class="action-bar">
+
+            <!-- Contraseña -->
+            <div class="opt-group">
+                <span class="opt-label">Contraseña</span>
+                <div class="pass-wrap">
+                    <input class="pass-input" id="pass1" type="password" placeholder="Escribí tu contraseña" autocomplete="new-password">
+                    <button class="eye-btn" id="eye1" type="button" aria-label="Mostrar contraseña">👁</button>
+                </div>
+            </div>
+
+            <div class="opt-group">
+                <span class="opt-label">Confirmar contraseña</span>
+                <div class="pass-wrap">
+                    <input class="pass-input" id="pass2" type="password" placeholder="Repetí la contraseña" autocomplete="new-password">
+                    <button class="eye-btn" id="eye2" type="button" aria-label="Mostrar contraseña">👁</button>
+                </div>
+                <span class="pass-error" id="pass-error">Las contraseñas no coinciden</span>
+            </div>
+
+            <!-- Permisos -->
+            <div class="opt-group">
+                <span class="opt-label">Permisos para quien tenga la contraseña</span>
+                <div class="perm-list">
+                    <div class="perm-row">
+                        <input type="checkbox" id="perm-print" checked>
+                        <label for="perm-print">Permitir imprimir</label>
+                    </div>
+                    <div class="perm-row">
+                        <input type="checkbox" id="perm-copy">
+                        <label for="perm-copy">Permitir copiar texto e imágenes</label>
+                    </div>
+                    <div class="perm-row">
+                        <input type="checkbox" id="perm-modify">
+                        <label for="perm-modify">Permitir modificar el documento</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-note">
+                <span class="info-note-icon">🔐</span>
+                <p>Encriptación AES de 128 bits. Guardá tu contraseña en un lugar seguro — no es posible recuperarla si la olvidás.</p>
+            </div>
+        </div>
+
+        <div class="generate-row">
+            <button class="btn-primary" id="btn-generate" disabled>
+                <div class="spinner"></div>
+                <span id="btn-label">Proteger y descargar</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let pdfBytes = null;
+let fileName = 'documento';
+
+const uploadZone   = document.getElementById('upload-zone');
+const fileInput    = document.getElementById('file-input');
+const fileInfo     = document.getElementById('file-info');
+const optSection   = document.getElementById('options-section');
+const pass1        = document.getElementById('pass1');
+const pass2        = document.getElementById('pass2');
+const passError    = document.getElementById('pass-error');
+const btnGenerate  = document.getElementById('btn-generate');
+const btnLabel     = document.getElementById('btn-label');
+const toastEl      = document.getElementById('toast');
+
+let toastTimer;
+function showToast(msg, err = false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-change').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { handleFile(fileInput.files[0]); fileInput.value = ''; });
+
+async function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') return showToast('Seleccioná un archivo PDF', true);
+    const arr = await file.arrayBuffer();
+    pdfBytes = new Uint8Array(arr);
+    fileName = file.name.replace(/\.pdf$/i, '');
+    try {
+        const { PDFDocument } = PDFLib;
+        const doc = await PDFDocument.load(pdfBytes);
+        const n = doc.getPageCount();
+        document.getElementById('file-name-text').textContent = file.name;
+        document.getElementById('file-pages-text').textContent = `${n} página${n !== 1 ? 's' : ''}`;
+    } catch {
+        document.getElementById('file-name-text').textContent = file.name;
+        document.getElementById('file-pages-text').textContent = '';
+    }
+    uploadZone.style.display = 'none';
+    fileInfo.style.display = 'block';
+    optSection.style.display = 'block';
+    validateForm();
+}
+
+// Eye toggle
+['eye1','eye2'].forEach(id => {
+    const btn = document.getElementById(id);
+    const input = document.getElementById(id === 'eye1' ? 'pass1' : 'pass2');
+    btn.addEventListener('click', () => {
+        const isText = input.type === 'text';
+        input.type = isText ? 'password' : 'text';
+        btn.textContent = isText ? '👁' : '🙈';
+    });
+});
+
+function validateForm() {
+    const p1 = pass1.value;
+    const p2 = pass2.value;
+    const match = p1 === p2;
+    const valid = p1.length >= 1 && match && pdfBytes;
+    passError.style.display = (p2.length > 0 && !match) ? 'block' : 'none';
+    pass2.classList.toggle('error', p2.length > 0 && !match);
+    btnGenerate.disabled = !valid;
+}
+
+pass1.addEventListener('input', validateForm);
+pass2.addEventListener('input', validateForm);
+
+btnGenerate.addEventListener('click', async () => {
+    if (!pdfBytes || !pass1.value) return;
+    if (pass1.value !== pass2.value) return showToast('Las contraseñas no coinciden', true);
+
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    btnLabel.textContent = 'Protegiendo…';
+
+    try {
+        const { PDFDocument } = PDFLib;
+        const doc = await PDFDocument.load(pdfBytes);
+
+        const allowPrint  = document.getElementById('perm-print').checked;
+        const allowCopy   = document.getElementById('perm-copy').checked;
+        const allowModify = document.getElementById('perm-modify').checked;
+
+        const bytes = await doc.save({
+            userPassword:  pass1.value,
+            ownerPassword: pass1.value + '_owner_sa',
+            permissions: {
+                printing:             allowPrint  ? 'highResolution' : false,
+                modifying:            allowModify,
+                copying:              allowCopy,
+                annotating:           false,
+                fillingForms:         true,
+                contentAccessibility: true,
+                documentAssembly:     false,
+            }
+        });
+
+        const blob = new Blob([bytes], { type: 'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `${fileName}-protegido.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast('✔ PDF protegido y descargado');
+    } catch (err) {
+        console.error(err);
+        showToast('Error al proteger el PDF. Intentá con otro archivo.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        btnLabel.textContent = 'Proteger y descargar';
+        validateForm();
+    }
+});
+</script>
+</body>
+</html>

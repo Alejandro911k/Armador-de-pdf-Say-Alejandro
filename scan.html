@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escanear a PDF — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        :root { --purple:#832885; --purple-dark:#5A2362; --purple-light:#EC6AFF; --yellow:#EFDB5D; --yellow-dark:#EABE59; --cream:#F6EECA; --text:#3a1a4d; }
+        *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--cream); min-height:100vh; display:flex; flex-direction:column; font-family:'DM Sans',sans-serif; color:var(--text); }
+
+        header { background:var(--purple); display:flex; align-items:center; gap:14px; padding:15px 36px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(90,35,98,.2); }
+        .logo { width:40px; height:40px; flex-shrink:0; }
+        .brand { font-family:'Titan One',cursive; font-size:20px; color:var(--yellow); line-height:1; }
+        .subtitle { font-family:'Nunito',sans-serif; font-weight:700; font-size:10px; color:rgba(246,238,202,.5); letter-spacing:.14em; text-transform:uppercase; }
+        .header-nav { margin-left:auto; }
+        .nav-back { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.5); text-decoration:none; padding:6px 14px; border:1.5px solid rgba(246,238,202,.15); border-radius:50px; transition:color .15s,border-color .15s; white-space:nowrap; }
+        .nav-back:hover { color:var(--cream); border-color:rgba(246,238,202,.35); }
+
+        main { flex:1; padding:32px 24px 48px; max-width:840px; margin:0 auto; width:100%; }
+        h1 { font-family:'Nunito',sans-serif; font-weight:900; font-size:26px; color:var(--purple); margin-bottom:6px; letter-spacing:-.015em; }
+        .page-desc { font-size:14px; opacity:.7; margin-bottom:28px; }
+
+        /* Mode picker */
+        .mode-row { display:flex; gap:12px; margin-bottom:28px; }
+        .mode-btn { flex:1; background:#fff; border:2.5px solid rgba(131,40,133,.2); border-radius:14px; padding:18px 14px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; }
+        .mode-btn.active { border-color:var(--purple); background:rgba(131,40,133,.04); }
+        .mode-btn:hover:not(.active) { border-color:rgba(131,40,133,.4); }
+        .mode-icon { font-size:30px; margin-bottom:6px; }
+        .mode-title { font-family:'Nunito',sans-serif; font-weight:800; font-size:14px; color:var(--purple); }
+        .mode-desc { font-size:11px; opacity:.55; margin-top:3px; line-height:1.4; }
+
+        /* Camera panel */
+        #camera-panel { display:none; }
+        #camera-panel.visible { display:block; }
+        .cam-wrap { position:relative; background:#0d0014; border-radius:18px; overflow:hidden; margin-bottom:14px; }
+        #video { width:100%; display:block; max-height:420px; object-fit:contain; background:#0d0014; }
+        .cam-overlay { position:absolute; top:14px; right:14px; display:flex; gap:8px; }
+        .cam-overlay-btn { background:rgba(0,0,0,.5); backdrop-filter:blur(8px); border:1.5px solid rgba(255,255,255,.2); color:#fff; border-radius:50px; padding:7px 14px; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:background .2s; }
+        .cam-overlay-btn:hover { background:rgba(0,0,0,.7); }
+        .capture-row { display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:24px; }
+        .btn-capture { background:var(--purple); color:#fff; border:none; border-radius:50px; padding:14px 32px; font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; cursor:pointer; transition:background .2s,transform .18s; display:flex; align-items:center; gap:10px; }
+        .btn-capture:hover { background:var(--purple-dark); transform:scale(1.03); }
+        .capture-count { font-family:'Nunito',sans-serif; font-weight:700; font-size:13px; opacity:.6; }
+
+        /* Upload panel */
+        #upload-panel { display:none; }
+        #upload-panel.visible { display:block; }
+        .upload-zone { background:#fff; border:2.5px dashed rgba(131,40,133,.3); border-radius:20px; padding:44px 24px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; margin-bottom:24px; }
+        .upload-zone:hover,.upload-zone.drag-over { border-color:var(--purple); background:rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display:none; }
+        .upload-icon { font-size:42px; margin-bottom:14px; display:block; }
+        .upload-zone h2 { font-family:'Nunito',sans-serif; font-weight:800; font-size:17px; color:var(--purple); margin-bottom:6px; }
+        .upload-zone p { font-size:13px; opacity:.6; }
+        .btn-browse { display:inline-block; margin-top:18px; background:var(--purple); color:#fff; padding:9px 22px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:800; font-size:13px; cursor:pointer; transition:background .2s; border:none; }
+        .btn-browse:hover { background:var(--purple-dark); }
+
+        /* Gallery */
+        .gallery-section { display:none; }
+        .gallery-section.visible { display:block; }
+        .gallery-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+        .gallery-title { font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:var(--purple); }
+        .btn-clear-all { background:transparent; color:rgba(58,26,77,.45); border:1.5px solid rgba(58,26,77,.15); border-radius:50px; padding:5px 13px; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:border-color .2s,color .2s; }
+        .btn-clear-all:hover { border-color:var(--purple); color:var(--purple); }
+        .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:12px; margin-bottom:20px; }
+        .capture-card { position:relative; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 10px rgba(90,35,98,.08); border:2px solid rgba(131,40,133,.1); aspect-ratio:3/4; }
+        .capture-card img { width:100%; height:100%; object-fit:cover; display:block; }
+        .card-num { position:absolute; top:6px; left:6px; background:var(--purple); color:#fff; font-family:'Nunito',sans-serif; font-weight:800; font-size:11px; padding:3px 7px; border-radius:50px; }
+        .card-del { position:absolute; top:6px; right:6px; background:rgba(0,0,0,.55); color:#fff; font-size:13px; width:24px; height:24px; border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:background .15s; }
+        .card-del:hover { background:rgba(200,0,0,.7); }
+
+        /* Options */
+        .opts-bar { background:var(--purple-dark); border-radius:18px; padding:20px 24px; display:flex; flex-wrap:wrap; gap:20px; align-items:center; margin-bottom:20px; }
+        .opt-section { display:flex; flex-direction:column; gap:6px; }
+        .opt-label { font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; color:rgba(246,238,202,.5); text-transform:uppercase; letter-spacing:.1em; }
+        .tog-row { display:flex; gap:6px; }
+        .tog-btn { background:rgba(131,40,133,.35); border:1.5px solid rgba(246,238,202,.15); color:rgba(246,238,202,.6); border-radius:8px; padding:7px 13px; font-family:'Nunito',sans-serif; font-weight:800; font-size:12px; cursor:pointer; transition:background .2s,border-color .2s,color .2s; white-space:nowrap; }
+        .tog-btn.active { background:var(--yellow); border-color:var(--yellow); color:var(--purple-dark); }
+        .tog-btn:hover:not(.active) { border-color:rgba(246,238,202,.35); color:var(--cream); }
+
+        /* Generate */
+        .generate-row { display:flex; justify-content:flex-end; }
+        .btn-primary { background:var(--yellow); color:var(--purple-dark); border:none; border-radius:50px; padding:13px 28px; font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; cursor:pointer; transition:background .2s,transform .18s,box-shadow .2s; display:flex; align-items:center; gap:10px; }
+        .btn-primary:hover:not(:disabled) { background:var(--yellow-dark); transform:scale(1.04); box-shadow:0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+        .spinner { width:17px; height:17px; border:2.5px solid rgba(90,35,98,.25); border-top-color:var(--purple-dark); border-radius:50%; animation:spin .7s linear infinite; display:none; flex-shrink:0; }
+        .btn-primary.loading .spinner { display:block; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        .progress-wrap { display:none; margin-bottom:18px; }
+        .progress-wrap.visible { display:block; }
+        .progress-bar { height:6px; background:rgba(131,40,133,.15); border-radius:50px; overflow:hidden; }
+        .progress-fill { height:100%; background:var(--purple); border-radius:50px; width:0%; transition:width .3s ease; }
+        .progress-label { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:var(--purple); margin-top:6px; }
+
+        /* No camera msg */
+        .no-cam-msg { background:#fff; border-radius:16px; padding:32px 24px; text-align:center; border:2px solid rgba(131,40,133,.1); }
+        .no-cam-msg h3 { font-family:'Nunito',sans-serif; font-weight:800; font-size:16px; color:var(--purple); margin-bottom:8px; }
+        .no-cam-msg p { font-size:13px; opacity:.65; line-height:1.6; }
+
+        footer { background:var(--purple-dark); border-top:2px solid var(--purple); padding:18px; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .logo-sm { width:24px; height:24px; }
+        footer span { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.45); }
+        footer strong { font-family:'Titan One',cursive; font-size:13px; color:var(--yellow); }
+
+        .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(90px); background:var(--purple-dark); border:1.5px solid var(--yellow); color:var(--yellow); padding:12px 24px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; transition:transform .35s cubic-bezier(.34,1.56,.64,1); z-index:999; box-shadow:0 8px 32px rgba(0,0,0,.3); white-space:nowrap; pointer-events:none; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.error { border-color:var(--purple-light); color:var(--purple-light); }
+
+        @media(max-width:600px) { header { padding:14px 18px; } main { padding:24px 16px 40px; } .mode-row { flex-direction:column; } .opts-bar { gap:14px; } }
+    </style>
+</head>
+<body>
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <div><div class="brand">Say Alejandro</div><div class="subtitle">Herramientas</div></div>
+    <div class="header-nav"><a href="index.html" class="nav-back">← Herramientas</a></div>
+</header>
+
+<main>
+    <h1>Escanear a PDF</h1>
+    <p class="page-desc">Fotografiá documentos con la cámara o subí imágenes, y convertí todo en un PDF.</p>
+
+    <!-- Mode selector -->
+    <div class="mode-row">
+        <div class="mode-btn active" id="mode-cam">
+            <div class="mode-icon">📷</div>
+            <div class="mode-title">Usar cámara</div>
+            <div class="mode-desc">Fotografiá páginas en tiempo real</div>
+        </div>
+        <div class="mode-btn" id="mode-upload">
+            <div class="mode-icon">🖼️</div>
+            <div class="mode-title">Subir imágenes</div>
+            <div class="mode-desc">JPG, PNG, WEBP desde tu dispositivo</div>
+        </div>
+    </div>
+
+    <!-- Camera panel -->
+    <div id="camera-panel" class="visible">
+        <div class="cam-wrap" id="cam-wrap">
+            <video id="video" autoplay playsinline muted></video>
+            <div class="cam-overlay">
+                <button class="cam-overlay-btn" id="btn-flip">🔄 Cámara</button>
+            </div>
+        </div>
+        <div class="capture-row">
+            <button class="btn-capture" id="btn-capture">📸 Capturar página</button>
+            <span class="capture-count" id="capture-count">0 capturas</span>
+        </div>
+        <div id="no-cam" class="no-cam-msg" style="display:none">
+            <h3>No se encontró cámara</h3>
+            <p>Tu navegador no pudo acceder a la cámara.<br>Asegurate de dar permiso de cámara o usá el modo "Subir imágenes".</p>
+        </div>
+    </div>
+
+    <!-- Upload panel -->
+    <div id="upload-panel">
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" accept="image/jpeg,image/png,image/webp" multiple>
+            <span class="upload-icon">🖼️</span>
+            <h2>Arrastrá tus imágenes aquí</h2>
+            <p>JPG, PNG o WEBP — podés seleccionar varias a la vez</p>
+            <button class="btn-browse" id="btn-browse">Seleccionar imágenes</button>
+        </div>
+    </div>
+
+    <!-- Gallery (shared) -->
+    <div class="gallery-section" id="gallery-section">
+        <div class="gallery-header">
+            <span class="gallery-title" id="gallery-title">0 páginas</span>
+            <button class="btn-clear-all" id="btn-clear-all">Limpiar todo</button>
+        </div>
+        <div class="gallery" id="gallery"></div>
+
+        <!-- Options -->
+        <div class="opts-bar">
+            <div class="opt-section">
+                <span class="opt-label">Tamaño de página</span>
+                <div class="tog-row">
+                    <button class="tog-btn active" data-page="a4">A4</button>
+                    <button class="tog-btn" data-page="letter">Carta</button>
+                    <button class="tog-btn" data-page="auto">Original</button>
+                </div>
+            </div>
+            <div class="opt-section">
+                <span class="opt-label">Orientación</span>
+                <div class="tog-row">
+                    <button class="tog-btn active" data-orient="portrait">↕ Vertical</button>
+                    <button class="tog-btn" data-orient="landscape">↔ Horizontal</button>
+                </div>
+            </div>
+            <div class="opt-section">
+                <span class="opt-label">Calidad de imagen</span>
+                <div class="tog-row">
+                    <button class="tog-btn" data-quality="0.95">Alta</button>
+                    <button class="tog-btn active" data-quality="0.82">Media</button>
+                    <button class="tog-btn" data-quality="0.6">Baja</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-wrap" id="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+            <div class="progress-label" id="progress-label">Procesando…</div>
+        </div>
+
+        <div class="generate-row">
+            <button class="btn-primary" id="btn-generate">
+                <div class="spinner"></div>
+                <span id="btn-label">Crear PDF</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+let mode        = 'cam';
+let captures    = [];        // Array of { dataUrl, blob }
+let stream      = null;
+let facingMode  = 'environment';
+let pageSize    = 'a4';
+let orient      = 'portrait';
+let imgQuality  = 0.82;
+
+const video     = document.getElementById('video');
+const toastEl   = document.getElementById('toast');
+const gallery   = document.getElementById('gallery');
+const gallerySection = document.getElementById('gallery-section');
+const galleryTitle   = document.getElementById('gallery-title');
+const btnGenerate    = document.getElementById('btn-generate');
+
+let toastTimer;
+function showToast(msg, err=false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+// Mode switch
+document.getElementById('mode-cam').addEventListener('click', () => setMode('cam'));
+document.getElementById('mode-upload').addEventListener('click', () => setMode('upload'));
+
+function setMode(m) {
+    mode = m;
+    document.getElementById('mode-cam').classList.toggle('active', m === 'cam');
+    document.getElementById('mode-upload').classList.toggle('active', m === 'upload');
+    document.getElementById('camera-panel').classList.toggle('visible', m === 'cam');
+    document.getElementById('upload-panel').classList.toggle('visible', m === 'upload');
+    if (m === 'cam') startCamera();
+    else stopCamera();
+}
+
+// Camera
+async function startCamera() {
+    const noCam = document.getElementById('no-cam');
+    const camWrap = document.getElementById('cam-wrap');
+    try {
+        if (stream) stopCamera();
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode, width: { ideal: 1920 }, height: { ideal: 1080 } } });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        noCam.style.display = 'none';
+        camWrap.style.display = 'block';
+    } catch(e) {
+        video.style.display = 'none';
+        camWrap.style.display = 'none';
+        noCam.style.display = 'block';
+    }
+}
+
+function stopCamera() {
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+document.getElementById('btn-flip').addEventListener('click', () => {
+    facingMode = facingMode === 'environment' ? 'user' : 'environment';
+    startCamera();
+});
+
+document.getElementById('btn-capture').addEventListener('click', () => {
+    if (!stream) return showToast('No hay cámara activa', true);
+    const canvas = document.createElement('canvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => {
+        const dataUrl = canvas.toDataURL('image/jpeg', imgQuality);
+        addCapture({ dataUrl, blob });
+    }, 'image/jpeg', imgQuality);
+});
+
+// Upload
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+function handleFiles(files) {
+    Array.from(files).forEach(f => {
+        if (!f.type.startsWith('image/')) return;
+        const reader = new FileReader();
+        reader.onload = e => addCapture({ dataUrl: e.target.result, blob: f });
+        reader.readAsDataURL(f);
+    });
+}
+
+// Gallery
+function addCapture(item) {
+    captures.push(item);
+    renderGallery();
+}
+
+function renderGallery() {
+    gallery.innerHTML = '';
+    captures.forEach((item, i) => {
+        const card = document.createElement('div');
+        card.className = 'capture-card';
+        card.innerHTML = `
+            <img src="${item.dataUrl}" alt="Página ${i+1}" loading="lazy">
+            <span class="card-num">${i+1}</span>
+            <button class="card-del" data-idx="${i}" title="Eliminar">✕</button>
+        `;
+        gallery.appendChild(card);
+    });
+    gallery.querySelectorAll('.card-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+            captures.splice(parseInt(btn.dataset.idx), 1);
+            renderGallery();
+        });
+    });
+    const n = captures.length;
+    galleryTitle.textContent = `${n} página${n !== 1 ? 's' : ''}`;
+    gallerySection.classList.toggle('visible', n > 0);
+    document.getElementById('capture-count').textContent = `${n} captura${n !== 1 ? 's' : ''}`;
+}
+
+document.getElementById('btn-clear-all').addEventListener('click', () => {
+    captures = [];
+    renderGallery();
+});
+
+// Options
+document.querySelectorAll('[data-page]').forEach(btn => {
+    btn.addEventListener('click', () => { document.querySelectorAll('[data-page]').forEach(b => b.classList.remove('active')); btn.classList.add('active'); pageSize = btn.dataset.page; });
+});
+document.querySelectorAll('[data-orient]').forEach(btn => {
+    btn.addEventListener('click', () => { document.querySelectorAll('[data-orient]').forEach(b => b.classList.remove('active')); btn.classList.add('active'); orient = btn.dataset.orient; });
+});
+document.querySelectorAll('[data-quality]').forEach(btn => {
+    btn.addEventListener('click', () => { document.querySelectorAll('[data-quality]').forEach(b => b.classList.remove('active')); btn.classList.add('active'); imgQuality = parseFloat(btn.dataset.quality); });
+});
+
+// Generate PDF
+const progressWrap  = document.getElementById('progress-wrap');
+const progressFill  = document.getElementById('progress-fill');
+const progressLabel = document.getElementById('progress-label');
+
+function setProgress(pct, label) {
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = label;
+}
+
+btnGenerate.addEventListener('click', async () => {
+    if (captures.length === 0) return showToast('Agregá al menos una imagen', true);
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    document.getElementById('btn-label').textContent = 'Generando PDF…';
+    progressWrap.classList.add('visible');
+
+    try {
+        const { PDFDocument } = PDFLib;
+        const doc = await PDFDocument.create();
+
+        // Page dimensions in points (1 pt = 1/72 inch)
+        const pageSizes = {
+            a4:     { w: 595.28, h: 841.89 },
+            letter: { w: 612,    h: 792 },
+        };
+
+        for (let i = 0; i < captures.length; i++) {
+            const pct = Math.round((i / captures.length) * 90);
+            setProgress(pct, `Procesando imagen ${i+1} de ${captures.length}…`);
+
+            // Load image
+            const dataUrl = captures[i].dataUrl;
+            const base64  = dataUrl.split(',')[1];
+            const imgBytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+            let pdfImg;
+            if (dataUrl.includes('image/png')) {
+                pdfImg = await doc.embedPng(imgBytes);
+            } else {
+                pdfImg = await doc.embedJpg(imgBytes);
+            }
+
+            let pgW, pgH;
+            if (pageSize === 'auto') {
+                pgW = pdfImg.width;
+                pgH = pdfImg.height;
+            } else {
+                const dims = pageSizes[pageSize];
+                pgW = dims.w;
+                pgH = dims.h;
+                if (orient === 'landscape') { pgW = dims.h; pgH = dims.w; }
+            }
+
+            const page = doc.addPage([pgW, pgH]);
+
+            // Fit image into page preserving aspect ratio
+            const ratio = Math.min(pgW / pdfImg.width, pgH / pdfImg.height);
+            const drawW = pdfImg.width  * ratio;
+            const drawH = pdfImg.height * ratio;
+            const x = (pgW - drawW) / 2;
+            const y = (pgH - drawH) / 2;
+            page.drawImage(pdfImg, { x, y, width: drawW, height: drawH });
+        }
+
+        setProgress(95, 'Guardando PDF…');
+        const outBytes = await doc.save();
+        const blob = new Blob([outBytes], { type:'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        const date = new Date().toISOString().slice(0,10);
+        a.href = url; a.download = `escaneo-${date}.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        setProgress(100, '¡Listo!');
+        showToast(`✔ PDF creado · ${captures.length} página${captures.length !== 1 ? 's' : ''}`);
+    } catch(err) {
+        console.error(err);
+        showToast('Error al crear el PDF. Revisá las imágenes.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        document.getElementById('btn-label').textContent = 'Crear PDF';
+        setTimeout(() => progressWrap.classList.remove('visible'), 2000);
+    }
+});
+
+// Start camera on load
+startCamera();
+</script>
+</body>
+</html>

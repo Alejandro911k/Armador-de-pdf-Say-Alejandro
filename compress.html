@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprimir PDF — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        :root {
+            --purple:       #832885;
+            --purple-dark:  #5A2362;
+            --purple-light: #EC6AFF;
+            --yellow:       #EFDB5D;
+            --yellow-dark:  #EABE59;
+            --cream:        #F6EECA;
+            --text:         #3a1a4d;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--cream); min-height: 100vh; display: flex; flex-direction: column; font-family: 'DM Sans', sans-serif; color: var(--text); }
+
+        header { background: var(--purple); display: flex; align-items: center; gap: 14px; padding: 15px 36px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 16px rgba(90,35,98,.2); }
+        .logo { width: 40px; height: 40px; flex-shrink: 0; }
+        .brand { font-family: 'Titan One', cursive; font-size: 20px; color: var(--yellow); line-height: 1; }
+        .subtitle { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 10px; color: rgba(246,238,202,.5); letter-spacing: .14em; text-transform: uppercase; }
+        .header-nav { margin-left: auto; }
+        .nav-back { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.5); text-decoration: none; padding: 6px 14px; border: 1.5px solid rgba(246,238,202,.15); border-radius: 50px; transition: color .15s, border-color .15s; white-space: nowrap; }
+        .nav-back:hover { color: var(--cream); border-color: rgba(246,238,202,.35); }
+
+        main { flex: 1; padding: 32px 24px 48px; max-width: 680px; margin: 0 auto; width: 100%; }
+        h1 { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 26px; color: var(--purple); margin-bottom: 6px; letter-spacing: -.015em; }
+        .page-desc { font-size: 14px; opacity: .7; margin-bottom: 28px; }
+
+        .upload-zone { background: #fff; border: 2.5px dashed rgba(131,40,133,.3); border-radius: 20px; padding: 44px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; margin-bottom: 24px; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--purple); background: rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display: none; }
+        .upload-icon { font-size: 42px; margin-bottom: 14px; display: block; }
+        .upload-zone h2 { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 17px; color: var(--purple); margin-bottom: 6px; }
+        .upload-zone p { font-size: 13px; opacity: .6; }
+        .btn-browse { display: inline-block; margin-top: 18px; background: var(--purple); color: #fff; padding: 9px 22px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 13px; cursor: pointer; transition: background .2s; border: none; }
+        .btn-browse:hover { background: var(--purple-dark); }
+
+        #file-info { display: none; background: #fff; border-radius: 16px; padding: 18px 22px; margin-bottom: 24px; box-shadow: 0 2px 10px rgba(90,35,98,.08); }
+        .file-meta { display: flex; align-items: center; gap: 14px; }
+        .file-icon { font-size: 28px; flex-shrink: 0; }
+        .file-details { min-width: 0; flex: 1; }
+        .file-name { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 15px; color: var(--purple); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+        .file-meta-row { display: flex; gap: 12px; margin-top: 3px; }
+        .file-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(131,40,133,.1); color: var(--purple-dark); font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 11px; padding: 2px 9px; border-radius: 10px; }
+        .btn-change { margin-left: auto; background: transparent; color: rgba(58,26,77,.5); border: 1.5px solid rgba(58,26,77,.18); border-radius: 50px; padding: 6px 14px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; white-space: nowrap; transition: border-color .2s, color .2s; flex-shrink: 0; }
+        .btn-change:hover { border-color: var(--purple); color: var(--purple); }
+
+        #options-section { display: none; }
+        .action-bar { background: var(--purple-dark); border-radius: 16px; padding: 26px 28px; margin-bottom: 16px; }
+
+        .opt-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+        .opt-group:last-child { margin-bottom: 0; }
+        .opt-label { font-family: 'Nunito', sans-serif; font-size: 10px; font-weight: 800; color: rgba(246,238,202,.5); text-transform: uppercase; letter-spacing: .1em; }
+
+        /* Level cards */
+        .level-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .level-card {
+            background: rgba(131,40,133,.3);
+            border: 2px solid rgba(246,238,202,.1);
+            border-radius: 12px;
+            padding: 14px 12px;
+            cursor: pointer;
+            transition: border-color .2s, background .2s;
+            text-align: center;
+        }
+        .level-card.active { background: rgba(239,219,93,.15); border-color: var(--yellow); }
+        .level-card:hover:not(.active) { border-color: rgba(246,238,202,.3); }
+        .level-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+        .level-name { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; color: var(--cream); margin-bottom: 3px; }
+        .level-desc { font-size: 11px; color: rgba(246,238,202,.5); line-height: 1.4; }
+        .level-card.active .level-name { color: var(--yellow); }
+
+        /* Info bar */
+        .info-bar { background: rgba(0,0,0,.15); border-radius: 10px; padding: 12px 14px; margin-top: 22px; display: flex; align-items: flex-start; gap: 10px; }
+        .info-bar-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+        #info-text { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12.5px; color: rgba(246,238,202,.7); line-height: 1.5; }
+        #info-text .hl { color: var(--yellow); }
+
+        /* Progress */
+        #progress-wrap { display: none; margin-top: 16px; }
+        .progress-label { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.5); margin-bottom: 6px; display: flex; justify-content: space-between; }
+        .progress-track { background: rgba(0,0,0,.2); border-radius: 10px; overflow: hidden; height: 7px; }
+        #progress-bar { height: 100%; background: var(--yellow); width: 0%; transition: width .3s; border-radius: 10px; }
+
+        .generate-row { display: flex; justify-content: flex-end; }
+        .btn-primary { background: var(--yellow); color: var(--purple-dark); border: none; border-radius: 50px; padding: 13px 30px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px; cursor: pointer; transition: background .2s, transform .18s, box-shadow .2s; display: flex; align-items: center; gap: 10px; }
+        .btn-primary:hover:not(:disabled) { background: var(--yellow-dark); transform: scale(1.04); box-shadow: 0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+        .spinner { width: 17px; height: 17px; border: 2.5px solid rgba(90,35,98,.25); border-top-color: var(--purple-dark); border-radius: 50%; animation: spin .7s linear infinite; display: none; flex-shrink: 0; }
+        .btn-primary.loading .spinner { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        footer { background: var(--purple-dark); border-top: 2px solid var(--purple); padding: 18px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .logo-sm { width: 24px; height: 24px; }
+        footer span { font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; color: rgba(246,238,202,.45); }
+        footer strong { font-family: 'Titan One', cursive; font-size: 13px; color: var(--yellow); }
+
+        .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(90px); background: var(--purple-dark); border: 1.5px solid var(--yellow); color: var(--yellow); padding: 12px 24px; border-radius: 50px; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; box-shadow: 0 8px 32px rgba(0,0,0,.3); white-space: nowrap; pointer-events: none; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        .toast.error { border-color: var(--purple-light); color: var(--purple-light); }
+
+        @media (max-width: 520px) {
+            header { padding: 14px 18px; }
+            main { padding: 24px 16px 40px; }
+            .level-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <div>
+        <div class="brand">Say Alejandro</div>
+        <div class="subtitle">Herramientas</div>
+    </div>
+    <div class="header-nav">
+        <a href="index.html" class="nav-back">← Herramientas</a>
+    </div>
+</header>
+
+<main>
+    <h1>Comprimir PDF</h1>
+    <p class="page-desc">Reducí el tamaño de tu PDF re-renderizando las páginas como imágenes optimizadas.</p>
+
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf">
+        <span class="upload-icon">📦</span>
+        <h2>Arrastrá tu PDF aquí</h2>
+        <p>Solo archivos PDF</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar PDF</button>
+    </div>
+
+    <div id="file-info">
+        <div class="file-meta">
+            <span class="file-icon">📄</span>
+            <div class="file-details">
+                <div class="file-name" id="file-name-text"></div>
+                <div class="file-meta-row">
+                    <span class="file-badge" id="badge-pages"></span>
+                    <span class="file-badge" id="badge-size"></span>
+                </div>
+            </div>
+            <button class="btn-change" id="btn-change">Cambiar</button>
+        </div>
+    </div>
+
+    <div id="options-section">
+        <div class="action-bar">
+
+            <div class="opt-group">
+                <span class="opt-label">Nivel de compresión</span>
+                <div class="level-grid">
+                    <div class="level-card" data-scale="1.8" data-q="0.88">
+                        <span class="level-icon">🟢</span>
+                        <div class="level-name">Suave</div>
+                        <div class="level-desc">Calidad alta, menor reducción</div>
+                    </div>
+                    <div class="level-card active" data-scale="1.1" data-q="0.72">
+                        <span class="level-icon">🟡</span>
+                        <div class="level-name">Moderada</div>
+                        <div class="level-desc">Buen balance calidad/tamaño</div>
+                    </div>
+                    <div class="level-card" data-scale="0.65" data-q="0.52">
+                        <span class="level-icon">🔴</span>
+                        <div class="level-name">Fuerte</div>
+                        <div class="level-desc">Máxima reducción, menor calidad</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-bar">
+                <span class="info-bar-icon">ℹ️</span>
+                <span id="info-text">El texto del PDF no será seleccionable en el resultado — las páginas se convierten en imágenes JPG incrustadas.</span>
+            </div>
+
+            <div id="progress-wrap">
+                <div class="progress-label">
+                    <span id="progress-label-text">Procesando…</span>
+                    <span id="progress-pct">0%</span>
+                </div>
+                <div class="progress-track"><div id="progress-bar"></div></div>
+            </div>
+        </div>
+
+        <div class="generate-row">
+            <button class="btn-primary" id="btn-generate">
+                <div class="spinner"></div>
+                <span id="btn-label">Comprimir y descargar</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg">
+        <rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/>
+        <path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/>
+        <path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/>
+        <path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/>
+    </svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+let pdfBytes  = null;
+let pdfJS     = null;
+let fileName  = 'documento';
+let origSizeBytes = 0;
+let renderScale = 1.1;
+let jpgQuality  = 0.72;
+
+const uploadZone  = document.getElementById('upload-zone');
+const fileInput   = document.getElementById('file-input');
+const fileInfo    = document.getElementById('file-info');
+const optSection  = document.getElementById('options-section');
+const progressWrap = document.getElementById('progress-wrap');
+const progressBar  = document.getElementById('progress-bar');
+const progressPct  = document.getElementById('progress-pct');
+const progressLbl  = document.getElementById('progress-label-text');
+const btnGenerate  = document.getElementById('btn-generate');
+const btnLabel     = document.getElementById('btn-label');
+const toastEl      = document.getElementById('toast');
+
+let toastTimer;
+function showToast(msg, err = false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3800);
+}
+
+function fmtSize(bytes) {
+    if (bytes < 1024)       return bytes + ' B';
+    if (bytes < 1024*1024)  return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-change').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { handleFile(fileInput.files[0]); fileInput.value = ''; });
+
+async function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') return showToast('Seleccioná un archivo PDF', true);
+    const arr = await file.arrayBuffer();
+    pdfBytes = new Uint8Array(arr);
+    origSizeBytes = file.size;
+    fileName = file.name.replace(/\.pdf$/i, '');
+    pdfJS = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+    const n = pdfJS.numPages;
+    document.getElementById('file-name-text').textContent = file.name;
+    document.getElementById('badge-pages').textContent = `${n} página${n !== 1 ? 's' : ''}`;
+    document.getElementById('badge-size').textContent = fmtSize(file.size);
+    uploadZone.style.display = 'none';
+    fileInfo.style.display   = 'block';
+    optSection.style.display = 'block';
+}
+
+document.querySelectorAll('.level-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.level-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        renderScale = parseFloat(card.dataset.scale);
+        jpgQuality  = parseFloat(card.dataset.q);
+    });
+});
+
+btnGenerate.addEventListener('click', async () => {
+    if (!pdfJS) return;
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    btnLabel.textContent = 'Comprimiendo…';
+    progressWrap.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressPct.textContent = '0%';
+
+    try {
+        const { PDFDocument } = PDFLib;
+        const outDoc = await PDFDocument.create();
+        const total  = pdfJS.numPages;
+
+        for (let i = 1; i <= total; i++) {
+            const page = await pdfJS.getPage(i);
+            const origVP = page.getViewport({ scale: 1 });
+            const renderVP = page.getViewport({ scale: renderScale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width  = renderVP.width;
+            canvas.height = renderVP.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: renderVP }).promise;
+
+            const jpgBytes = await new Promise((res, rej) =>
+                canvas.toBlob(blob => blob ? blob.arrayBuffer().then(res).catch(rej) : rej(new Error('toBlob failed')), 'image/jpeg', jpgQuality)
+            );
+
+            const jpgImg  = await outDoc.embedJpg(jpgBytes);
+            const outPage = outDoc.addPage([origVP.width, origVP.height]);
+            outPage.drawImage(jpgImg, { x: 0, y: 0, width: origVP.width, height: origVP.height });
+
+            const pct = Math.round(i / total * 100);
+            progressBar.style.width = pct + '%';
+            progressPct.textContent = pct + '%';
+            progressLbl.textContent = `Procesando página ${i} de ${total}…`;
+        }
+
+        const outBytes = await outDoc.save();
+        const saved = origSizeBytes - outBytes.length;
+        const savedPct = Math.round(saved / origSizeBytes * 100);
+
+        const blob = new Blob([outBytes], { type: 'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `${fileName}-comprimido.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+        const msg = saved > 0
+            ? `✔ Comprimido · ${fmtSize(origSizeBytes)} → ${fmtSize(outBytes.length)} (−${savedPct}%)`
+            : `✔ PDF generado · ${fmtSize(outBytes.length)}`;
+        showToast(msg);
+    } catch (err) {
+        console.error(err);
+        showToast('Error al comprimir el PDF. Intentá con otro archivo.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        btnLabel.textContent = 'Comprimir y descargar';
+        setTimeout(() => { progressWrap.style.display = 'none'; progressBar.style.width = '0%'; }, 2000);
+    }
+});
+</script>
+</body>
+</html>

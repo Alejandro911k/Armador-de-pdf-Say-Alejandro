@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organizar PDF — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <style>
+        :root { --purple:#832885; --purple-dark:#5A2362; --purple-light:#EC6AFF; --yellow:#EFDB5D; --yellow-dark:#EABE59; --cream:#F6EECA; --text:#3a1a4d; }
+        *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--cream); min-height:100vh; display:flex; flex-direction:column; font-family:'DM Sans',sans-serif; color:var(--text); }
+
+        header { background:var(--purple); display:flex; align-items:center; gap:14px; padding:15px 36px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(90,35,98,.2); }
+        .logo { width:40px; height:40px; flex-shrink:0; }
+        .brand { font-family:'Titan One',cursive; font-size:20px; color:var(--yellow); line-height:1; }
+        .subtitle { font-family:'Nunito',sans-serif; font-weight:700; font-size:10px; color:rgba(246,238,202,.5); letter-spacing:.14em; text-transform:uppercase; }
+        .header-nav { margin-left:auto; }
+        .nav-back { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.5); text-decoration:none; padding:6px 14px; border:1.5px solid rgba(246,238,202,.15); border-radius:50px; transition:color .15s,border-color .15s; white-space:nowrap; }
+        .nav-back:hover { color:var(--cream); border-color:rgba(246,238,202,.35); }
+
+        main { flex:1; padding:32px 24px 48px; max-width:960px; margin:0 auto; width:100%; }
+        h1 { font-family:'Nunito',sans-serif; font-weight:900; font-size:26px; color:var(--purple); margin-bottom:6px; letter-spacing:-.015em; }
+        .page-desc { font-size:14px; opacity:.7; margin-bottom:28px; }
+
+        .upload-zone { background:#fff; border:2.5px dashed rgba(131,40,133,.3); border-radius:20px; padding:44px 24px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; margin-bottom:24px; }
+        .upload-zone:hover,.upload-zone.drag-over { border-color:var(--purple); background:rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display:none; }
+        .upload-icon { font-size:42px; margin-bottom:14px; display:block; }
+        .upload-zone h2 { font-family:'Nunito',sans-serif; font-weight:800; font-size:17px; color:var(--purple); margin-bottom:6px; }
+        .upload-zone p { font-size:13px; opacity:.6; }
+        .btn-browse { display:inline-block; margin-top:18px; background:var(--purple); color:#fff; padding:9px 22px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:800; font-size:13px; cursor:pointer; transition:background .2s; border:none; }
+        .btn-browse:hover { background:var(--purple-dark); }
+
+        #pages-section { display:none; }
+        .pages-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px; }
+        .pages-header h3 { font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:var(--purple); }
+        .header-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .action-btn { background:transparent; color:rgba(58,26,77,.55); border:1.5px solid rgba(58,26,77,.2); border-radius:50px; padding:5px 14px; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:border-color .2s,color .2s; white-space:nowrap; }
+        .action-btn:hover { border-color:var(--purple); color:var(--purple); }
+
+        .pages-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(100px,1fr)); gap:12px; margin-bottom:24px; }
+
+        .page-card { position:relative; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 2px 8px rgba(90,35,98,.09); cursor:grab; border:2.5px solid transparent; transition:border-color .15s,box-shadow .15s,opacity .15s,transform .15s; user-select:none; }
+        .page-card:active { cursor:grabbing; }
+        .page-card.drag-over-card { border-color:var(--purple); box-shadow:0 4px 18px rgba(131,40,133,.3); }
+        .page-card.dragging { opacity:.35; transform:scale(.96); }
+        .page-card canvas { width:100%; height:auto; display:block; pointer-events:none; }
+        .pg-num { position:absolute; bottom:5px; left:5px; background:rgba(90,35,98,.7); color:#fff; font-family:'Nunito',sans-serif; font-weight:800; font-size:10px; padding:2px 6px; border-radius:10px; line-height:1.4; pointer-events:none; }
+        .pg-delete { position:absolute; top:5px; right:5px; background:rgba(90,35,98,.75); color:#fff; border:none; border-radius:50%; width:22px; height:22px; font-size:11px; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .15s,background .15s; }
+        .page-card:hover .pg-delete { opacity:1; }
+        .pg-delete:hover { background:var(--purple); }
+        .drag-hint { font-size:18px; position:absolute; top:5px; left:5px; opacity:0; transition:opacity .15s; pointer-events:none; }
+        .page-card:hover .drag-hint { opacity:.6; }
+
+        .action-bar { background:var(--purple-dark); border-radius:16px; padding:18px 22px; margin-bottom:16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+        #info-text { font-family:'Nunito',sans-serif; font-weight:700; font-size:13px; color:rgba(246,238,202,.8); flex:1; }
+        #info-text .hl { color:var(--yellow); font-weight:900; }
+
+        .generate-row { display:flex; justify-content:flex-end; }
+        .btn-primary { background:var(--yellow); color:var(--purple-dark); border:none; border-radius:50px; padding:13px 30px; font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; cursor:pointer; transition:background .2s,transform .18s,box-shadow .2s; display:flex; align-items:center; gap:10px; }
+        .btn-primary:hover:not(:disabled) { background:var(--yellow-dark); transform:scale(1.04); box-shadow:0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+        .spinner { width:17px; height:17px; border:2.5px solid rgba(90,35,98,.25); border-top-color:var(--purple-dark); border-radius:50%; animation:spin .7s linear infinite; display:none; flex-shrink:0; }
+        .btn-primary.loading .spinner { display:block; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        footer { background:var(--purple-dark); border-top:2px solid var(--purple); padding:18px; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .logo-sm { width:24px; height:24px; }
+        footer span { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.45); }
+        footer strong { font-family:'Titan One',cursive; font-size:13px; color:var(--yellow); }
+
+        .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(90px); background:var(--purple-dark); border:1.5px solid var(--yellow); color:var(--yellow); padding:12px 24px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; transition:transform .35s cubic-bezier(.34,1.56,.64,1); z-index:999; box-shadow:0 8px 32px rgba(0,0,0,.3); white-space:nowrap; pointer-events:none; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.error { border-color:var(--purple-light); color:var(--purple-light); }
+
+        @media(max-width:600px) { header { padding:14px 18px; } main { padding:24px 16px 40px; } .pages-grid { grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); } }
+    </style>
+</head>
+<body>
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <div><div class="brand">Say Alejandro</div><div class="subtitle">Herramientas</div></div>
+    <div class="header-nav"><a href="index.html" class="nav-back">← Herramientas</a></div>
+</header>
+
+<main>
+    <h1>Organizar PDF</h1>
+    <p class="page-desc">Reordená y eliminá páginas arrastrándolas. El orden nuevo se guarda al descargar.</p>
+
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf">
+        <span class="upload-icon">🗂️</span>
+        <h2>Arrastrá tu PDF aquí</h2>
+        <p>Solo archivos PDF</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar PDF</button>
+    </div>
+
+    <div id="pages-section">
+        <div class="pages-header">
+            <h3 id="pages-title">Páginas</h3>
+            <div class="header-actions">
+                <button class="action-btn" id="btn-reverse">↕ Invertir orden</button>
+                <button class="action-btn" id="btn-change">Cambiar PDF</button>
+            </div>
+        </div>
+        <div class="pages-grid" id="pages-grid"></div>
+
+        <div class="action-bar">
+            <span id="info-text">Cargando…</span>
+        </div>
+        <div class="generate-row">
+            <button class="btn-primary" id="btn-generate" disabled>
+                <div class="spinner"></div>
+                <span id="btn-label">Guardar PDF organizado</span>
+            </button>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const pdfjsLib = window['pdfjs-dist/build/pdf'];
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+let pdfBytes = null;
+let pdfJS    = null;
+let fileName = 'documento';
+let order    = []; // current page order (0-based indices into original PDF)
+let dragSrc  = null;
+
+const uploadZone  = document.getElementById('upload-zone');
+const fileInput   = document.getElementById('file-input');
+const pagesSection = document.getElementById('pages-section');
+const pagesGrid   = document.getElementById('pages-grid');
+const infoText    = document.getElementById('info-text');
+const btnGenerate = document.getElementById('btn-generate');
+const btnLabel    = document.getElementById('btn-label');
+const toastEl     = document.getElementById('toast');
+
+let toastTimer;
+function showToast(msg, err=false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-change').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { handleFile(fileInput.files[0]); fileInput.value = ''; });
+
+document.getElementById('btn-reverse').addEventListener('click', () => {
+    order.reverse();
+    renderThumbs();
+    updateInfo();
+});
+
+async function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') return showToast('Seleccioná un archivo PDF', true);
+    const arr = await file.arrayBuffer();
+    pdfBytes = new Uint8Array(arr);
+    fileName = file.name.replace(/\.pdf$/i, '');
+    pdfJS    = await pdfjsLib.getDocument({ data: pdfBytes }).promise;
+    order    = Array.from({ length: pdfJS.numPages }, (_, i) => i);
+    uploadZone.style.display = 'none';
+    pagesSection.style.display = 'block';
+    document.getElementById('pages-title').textContent = `${pdfJS.numPages} página${pdfJS.numPages !== 1 ? 's' : ''}`;
+    renderThumbs();
+    updateInfo();
+}
+
+function renderThumbs() {
+    pagesGrid.innerHTML = '';
+    order.forEach((origIdx, slot) => {
+        const card = document.createElement('div');
+        card.className = 'page-card';
+        card.draggable = true;
+        card.dataset.slot = slot;
+        card.innerHTML = `<span class="drag-hint">⠿</span><canvas></canvas><span class="pg-num">${slot + 1}</span><button class="pg-delete" title="Eliminar página">✕</button>`;
+
+        const canvas = card.querySelector('canvas');
+        (async () => {
+            const page = await pdfJS.getPage(origIdx + 1);
+            const vp   = page.getViewport({ scale: 0.42 });
+            canvas.width  = vp.width;
+            canvas.height = vp.height;
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        })();
+
+        card.querySelector('.pg-delete').addEventListener('click', e => {
+            e.stopPropagation();
+            order.splice(slot, 1);
+            renderThumbs();
+            updateInfo();
+        });
+
+        card.addEventListener('dragstart', () => { dragSrc = slot; card.classList.add('dragging'); });
+        card.addEventListener('dragend',   () => { card.classList.remove('dragging'); document.querySelectorAll('.drag-over-card').forEach(c => c.classList.remove('drag-over-card')); });
+        card.addEventListener('dragover',  e  => { e.preventDefault(); if (dragSrc !== slot) card.classList.add('drag-over-card'); });
+        card.addEventListener('dragleave', () => card.classList.remove('drag-over-card'));
+        card.addEventListener('drop', e => {
+            e.preventDefault();
+            card.classList.remove('drag-over-card');
+            if (dragSrc !== null && dragSrc !== slot) {
+                const [moved] = order.splice(dragSrc, 1);
+                order.splice(slot, 0, moved);
+                renderThumbs();
+                updateInfo();
+            }
+            dragSrc = null;
+        });
+
+        pagesGrid.appendChild(card);
+    });
+}
+
+function updateInfo() {
+    const n = order.length;
+    if (n === 0) {
+        infoText.innerHTML = 'Eliminaste todas las páginas. Cargá un nuevo PDF.';
+        btnGenerate.disabled = true;
+        return;
+    }
+    infoText.innerHTML = `<span class="hl">${n}</span> página${n !== 1 ? 's' : ''} · Arrastrá para reordenar · ✕ para eliminar`;
+    btnGenerate.disabled = false;
+}
+
+btnGenerate.addEventListener('click', async () => {
+    if (!order.length) return;
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    btnLabel.textContent = 'Guardando…';
+    try {
+        const { PDFDocument } = PDFLib;
+        const srcDoc = await PDFDocument.load(pdfBytes);
+        const outDoc = await PDFDocument.create();
+        const pages  = await outDoc.copyPages(srcDoc, order);
+        pages.forEach(p => outDoc.addPage(p));
+        const bytes = await outDoc.save();
+        const blob  = new Blob([bytes], { type:'application/pdf' });
+        const url   = URL.createObjectURL(blob);
+        const a     = document.createElement('a');
+        a.href = url; a.download = `${fileName}-organizado.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`✔ PDF descargado · ${order.length} página${order.length !== 1 ? 's' : ''}`);
+    } catch(err) {
+        console.error(err);
+        showToast('Error al generar el PDF. Intentá con otro archivo.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        btnLabel.textContent = 'Guardar PDF organizado';
+        updateInfo();
+    }
+});
+</script>
+</body>
+</html>

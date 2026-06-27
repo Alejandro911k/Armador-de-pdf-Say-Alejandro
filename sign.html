@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firmar PDF — Say Alejandro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Titan+One&family=Nunito:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;1,9..40,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <style>
+        :root { --purple:#832885; --purple-dark:#5A2362; --purple-light:#EC6AFF; --yellow:#EFDB5D; --yellow-dark:#EABE59; --cream:#F6EECA; --text:#3a1a4d; }
+        *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+        body { background:var(--cream); min-height:100vh; display:flex; flex-direction:column; font-family:'DM Sans',sans-serif; color:var(--text); }
+
+        header { background:var(--purple); display:flex; align-items:center; gap:14px; padding:15px 36px; position:sticky; top:0; z-index:100; box-shadow:0 2px 16px rgba(90,35,98,.2); }
+        .logo { width:40px; height:40px; flex-shrink:0; }
+        .brand { font-family:'Titan One',cursive; font-size:20px; color:var(--yellow); line-height:1; }
+        .subtitle { font-family:'Nunito',sans-serif; font-weight:700; font-size:10px; color:rgba(246,238,202,.5); letter-spacing:.14em; text-transform:uppercase; }
+        .header-nav { margin-left:auto; }
+        .nav-back { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.5); text-decoration:none; padding:6px 14px; border:1.5px solid rgba(246,238,202,.15); border-radius:50px; transition:color .15s,border-color .15s; white-space:nowrap; }
+        .nav-back:hover { color:var(--cream); border-color:rgba(246,238,202,.35); }
+
+        main { flex:1; padding:32px 24px 48px; max-width:820px; margin:0 auto; width:100%; }
+        h1 { font-family:'Nunito',sans-serif; font-weight:900; font-size:26px; color:var(--purple); margin-bottom:6px; letter-spacing:-.015em; }
+        .page-desc { font-size:14px; opacity:.7; margin-bottom:28px; }
+
+        .upload-zone { background:#fff; border:2.5px dashed rgba(131,40,133,.3); border-radius:20px; padding:44px 24px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; margin-bottom:24px; }
+        .upload-zone:hover,.upload-zone.drag-over { border-color:var(--purple); background:rgba(131,40,133,.035); }
+        .upload-zone input[type="file"] { display:none; }
+        .upload-icon { font-size:42px; margin-bottom:14px; display:block; }
+        .upload-zone h2 { font-family:'Nunito',sans-serif; font-weight:800; font-size:17px; color:var(--purple); margin-bottom:6px; }
+        .upload-zone p { font-size:13px; opacity:.6; }
+        .btn-browse { display:inline-block; margin-top:18px; background:var(--purple); color:#fff; padding:9px 22px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:800; font-size:13px; cursor:pointer; transition:background .2s; border:none; }
+        .btn-browse:hover { background:var(--purple-dark); }
+
+        #file-info { display:none; background:#fff; border-radius:16px; padding:18px 22px; margin-bottom:24px; box-shadow:0 2px 10px rgba(90,35,98,.08); }
+        .file-meta { display:flex; align-items:center; gap:14px; }
+        .file-icon { font-size:28px; flex-shrink:0; }
+        .file-name { font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:var(--purple); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px; }
+        .file-pages { font-size:12px; opacity:.55; margin-top:2px; }
+        .btn-change { margin-left:auto; background:transparent; color:rgba(58,26,77,.5); border:1.5px solid rgba(58,26,77,.18); border-radius:50px; padding:6px 14px; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; cursor:pointer; white-space:nowrap; transition:border-color .2s,color .2s; flex-shrink:0; }
+        .btn-change:hover { border-color:var(--purple); color:var(--purple); }
+
+        #work-area { display:none; gap:28px; flex-wrap:wrap; }
+        #work-area.visible { display:flex; }
+
+        /* Signature canvas */
+        .sig-col { flex:1; min-width:280px; }
+        .sig-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .sig-label { font-family:'Nunito',sans-serif; font-weight:800; font-size:14px; color:var(--purple); }
+        .sig-actions { display:flex; gap:8px; }
+        .btn-clear { background:transparent; color:rgba(58,26,77,.5); border:1.5px solid rgba(58,26,77,.18); border-radius:50px; padding:5px 14px; font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; cursor:pointer; transition:border-color .2s,color .2s; }
+        .btn-clear:hover { border-color:var(--purple); color:var(--purple); }
+
+        .canvas-wrap { background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(90,35,98,.1); border:2px solid rgba(131,40,133,.12); position:relative; }
+        #sig-canvas { display:block; width:100%; cursor:crosshair; touch-action:none; }
+        .canvas-hint { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:'Nunito',sans-serif; font-weight:700; font-size:13px; color:rgba(58,26,77,.25); pointer-events:none; text-align:center; line-height:1.6; transition:opacity .2s; }
+        .canvas-hint.hidden { opacity:0; }
+
+        .pen-row { display:flex; align-items:center; gap:14px; margin-top:12px; }
+        .pen-label { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(58,26,77,.5); white-space:nowrap; }
+        input[type="range"] { flex:1; accent-color:var(--purple); cursor:pointer; }
+        .color-btns { display:flex; gap:6px; }
+        .color-btn { width:24px; height:24px; border-radius:50%; border:2.5px solid transparent; cursor:pointer; transition:border-color .15s,transform .15s; }
+        .color-btn.active { border-color:var(--purple); transform:scale(1.15); }
+
+        /* Options */
+        .opts-col { flex:0 0 220px; }
+        .action-bar { background:var(--purple-dark); border-radius:16px; padding:22px 20px; }
+        .opt-group { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+        .opt-group:last-child { margin-bottom:0; }
+        .opt-label { font-family:'Nunito',sans-serif; font-size:10px; font-weight:800; color:rgba(246,238,202,.5); text-transform:uppercase; letter-spacing:.1em; }
+
+        .tog-row { display:flex; gap:6px; flex-wrap:wrap; }
+        .tog-btn { background:rgba(131,40,133,.35); border:1.5px solid rgba(246,238,202,.15); color:rgba(246,238,202,.6); border-radius:8px; padding:7px 11px; font-family:'Nunito',sans-serif; font-weight:800; font-size:11px; cursor:pointer; transition:background .2s,border-color .2s,color .2s; }
+        .tog-btn.active { background:var(--yellow); border-color:var(--yellow); color:var(--purple-dark); }
+        .tog-btn:hover:not(.active) { border-color:rgba(246,238,202,.35); color:var(--cream); }
+
+        /* Position grid */
+        .pos-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
+        .pos-btn { background:rgba(131,40,133,.3); border:1.5px solid rgba(246,238,202,.12); border-radius:7px; padding:9px 0; font-size:14px; cursor:pointer; transition:background .2s,border-color .2s; text-align:center; }
+        .pos-btn.active { background:var(--yellow); border-color:var(--yellow); }
+        .pos-btn:hover:not(.active) { border-color:rgba(246,238,202,.3); }
+
+        .num-input { background:rgba(131,40,133,.35); border:1.5px solid rgba(246,238,202,.15); color:var(--cream); border-radius:8px; padding:8px 12px; font-family:'DM Sans',sans-serif; font-size:14px; outline:none; width:100%; transition:border-color .2s; }
+        .num-input:focus { border-color:rgba(246,238,202,.4); }
+
+        .generate-row { display:flex; justify-content:flex-end; margin-top:20px; }
+        .btn-primary { background:var(--yellow); color:var(--purple-dark); border:none; border-radius:50px; padding:13px 28px; font-family:'Nunito',sans-serif; font-weight:900; font-size:15px; cursor:pointer; transition:background .2s,transform .18s,box-shadow .2s; display:flex; align-items:center; gap:10px; }
+        .btn-primary:hover:not(:disabled) { background:var(--yellow-dark); transform:scale(1.04); box-shadow:0 6px 22px rgba(234,190,89,.35); }
+        .btn-primary:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+        .spinner { width:17px; height:17px; border:2.5px solid rgba(90,35,98,.25); border-top-color:var(--purple-dark); border-radius:50%; animation:spin .7s linear infinite; display:none; flex-shrink:0; }
+        .btn-primary.loading .spinner { display:block; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+
+        footer { background:var(--purple-dark); border-top:2px solid var(--purple); padding:18px; display:flex; align-items:center; justify-content:center; gap:8px; }
+        .logo-sm { width:24px; height:24px; }
+        footer span { font-family:'Nunito',sans-serif; font-weight:700; font-size:12px; color:rgba(246,238,202,.45); }
+        footer strong { font-family:'Titan One',cursive; font-size:13px; color:var(--yellow); }
+
+        .toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(90px); background:var(--purple-dark); border:1.5px solid var(--yellow); color:var(--yellow); padding:12px 24px; border-radius:50px; font-family:'Nunito',sans-serif; font-weight:700; font-size:14px; transition:transform .35s cubic-bezier(.34,1.56,.64,1); z-index:999; box-shadow:0 8px 32px rgba(0,0,0,.3); white-space:nowrap; pointer-events:none; }
+        .toast.show { transform:translateX(-50%) translateY(0); }
+        .toast.error { border-color:var(--purple-light); color:var(--purple-light); }
+
+        @media(max-width:640px) { header { padding:14px 18px; } main { padding:24px 16px 40px; } #work-area.visible { flex-direction:column; } .opts-col { flex:1; } }
+    </style>
+</head>
+<body>
+<header>
+    <svg class="logo" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <div><div class="brand">Say Alejandro</div><div class="subtitle">Herramientas</div></div>
+    <div class="header-nav"><a href="index.html" class="nav-back">← Herramientas</a></div>
+</header>
+
+<main>
+    <h1>Firmar PDF</h1>
+    <p class="page-desc">Dibujá tu firma y agregala a las páginas que elijas.</p>
+
+    <div class="upload-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".pdf">
+        <span class="upload-icon">✍️</span>
+        <h2>Arrastrá tu PDF aquí</h2>
+        <p>Solo archivos PDF</p>
+        <button class="btn-browse" id="btn-browse">Seleccionar PDF</button>
+    </div>
+
+    <div id="file-info">
+        <div class="file-meta">
+            <span class="file-icon">📄</span>
+            <div style="min-width:0;flex:1">
+                <div class="file-name" id="file-name-text"></div>
+                <div class="file-pages" id="file-pages-text"></div>
+            </div>
+            <button class="btn-change" id="btn-change">Cambiar</button>
+        </div>
+    </div>
+
+    <div id="work-area">
+        <!-- Signature canvas -->
+        <div class="sig-col">
+            <div class="sig-header">
+                <span class="sig-label">Dibujá tu firma</span>
+                <div class="sig-actions">
+                    <button class="btn-clear" id="btn-clear">Borrar</button>
+                </div>
+            </div>
+            <div class="canvas-wrap">
+                <canvas id="sig-canvas" height="180"></canvas>
+                <div class="canvas-hint" id="canvas-hint">Dibujá aquí tu firma<br><span style="font-size:11px;opacity:.7">Mouse o dedo (táctil)</span></div>
+            </div>
+            <div class="pen-row">
+                <span class="pen-label">Grosor</span>
+                <input type="range" id="pen-size" min="1" max="8" value="3" step="0.5">
+                <div class="color-btns">
+                    <button class="color-btn active" data-color="#1a0a28" style="background:#1a0a28" title="Negro oscuro"></button>
+                    <button class="color-btn" data-color="#3d0f6e" style="background:#3d0f6e" title="Púrpura"></button>
+                    <button class="color-btn" data-color="#1a3a6e" style="background:#1a3a6e" title="Azul"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options -->
+        <div class="opts-col">
+            <div class="action-bar">
+
+                <div class="opt-group">
+                    <span class="opt-label">Páginas</span>
+                    <div class="tog-row">
+                        <button class="tog-btn active" data-pages="last">Última</button>
+                        <button class="tog-btn" data-pages="first">Primera</button>
+                        <button class="tog-btn" data-pages="all">Todas</button>
+                        <button class="tog-btn" data-pages="num">Número</button>
+                    </div>
+                    <input class="num-input" id="page-num" type="number" min="1" value="1" placeholder="Nº de página" style="display:none">
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Tamaño</span>
+                    <div class="tog-row">
+                        <button class="tog-btn" data-size="80">Chica</button>
+                        <button class="tog-btn active" data-size="140">Mediana</button>
+                        <button class="tog-btn" data-size="200">Grande</button>
+                    </div>
+                </div>
+
+                <div class="opt-group">
+                    <span class="opt-label">Posición</span>
+                    <div class="pos-grid">
+                        <button class="pos-btn" data-pos="tl">↖</button>
+                        <button class="pos-btn" data-pos="tc">↑</button>
+                        <button class="pos-btn" data-pos="tr">↗</button>
+                        <button class="pos-btn" data-pos="bl">↙</button>
+                        <button class="pos-btn active" data-pos="bc">↓</button>
+                        <button class="pos-btn" data-pos="br">↘</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="generate-row">
+                <button class="btn-primary" id="btn-generate" disabled>
+                    <div class="spinner"></div>
+                    <span id="btn-label">Firmar y descargar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <svg class="logo-sm" viewBox="0 0 224.93 224.93" xmlns="http://www.w3.org/2000/svg"><rect fill="#832885" x="0" y="0" width="224.93" height="224.93" rx="112.47" ry="112.47"/><path fill="#efdb5d" d="m137.83,91.89c-11,1.62-20.85-5.4-22.79-16.14-1.89-10.46,4.89-20.84,15.26-23.18,11.63-2.63,22.81,5.17,24.44,16.61,1.57,11.07-5.89,21.09-16.91,22.71Z"/><path fill="#efdb5d" d="m81.25,92.22c-9.42,1.5-17.68-4.46-19.17-13.83-1.48-9.28,4.69-17.77,13.94-19.18,9.19-1.4,17.73,4.89,19.15,14.1,1.39,9-4.84,17.46-13.92,18.9Z"/><path fill="#efdb5d" d="m194.09,89.66c2.2,2.88,2.75,6.68,1.76,10.17-.67,2.37-1.48,5.02-2.77,7.41-9.3,17.23-20.8,32.92-35.42,46.04-10.31,9.25-22.68,15.93-36.11,18.24-39.79,6.82-73.13-12.43-90.63-47.13-4.34-8.61-2.48-15.05,4.2-18.28,5.62-2.72,11.91-.29,13.92,5.6,8.48,24.84,39.24,45.69,68.88,38.64,13.54-3.22,24.8-10.81,33.98-21.58,9.65-11.31,18.26-23.18,24.58-36.69,2.05-4.38,5.65-7.25,11.23-6.16,2.79.54,4.84,1.73,6.38,3.76Z"/></svg>
+    <span><strong>Say Alejandro</strong> — Herramientas web</span>
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+let pdfBytes   = null;
+let totalPages = 0;
+let fileName   = 'documento';
+let penColor   = '#1a0a28';
+let sigSize    = 140;
+let sigPos     = 'bc';
+let sigTarget  = 'last';
+let hasDrawn   = false;
+
+const sigCanvas  = document.getElementById('sig-canvas');
+const ctx        = sigCanvas.getContext('2d');
+const canvasHint = document.getElementById('canvas-hint');
+const toastEl    = document.getElementById('toast');
+const btnGenerate = document.getElementById('btn-generate');
+
+// Setup canvas
+ctx.strokeStyle = penColor;
+ctx.lineWidth   = 3;
+ctx.lineCap     = 'round';
+ctx.lineJoin    = 'round';
+
+let drawing = false;
+
+function getPos(e) {
+    const r = sigCanvas.getBoundingClientRect();
+    const scaleX = sigCanvas.width / r.width;
+    const scaleY = sigCanvas.height / r.height;
+    if (e.touches) {
+        return { x: (e.touches[0].clientX - r.left) * scaleX, y: (e.touches[0].clientY - r.top) * scaleY };
+    }
+    return { x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY };
+}
+
+sigCanvas.addEventListener('mousedown',  e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); markDrawn(); });
+sigCanvas.addEventListener('mousemove',  e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.moveTo(p.x, p.y); });
+sigCanvas.addEventListener('mouseup',    () => drawing = false);
+sigCanvas.addEventListener('mouseleave', () => drawing = false);
+sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); markDrawn(); }, { passive:false });
+sigCanvas.addEventListener('touchmove',  e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.moveTo(p.x, p.y); }, { passive:false });
+sigCanvas.addEventListener('touchend',   () => drawing = false);
+
+function markDrawn() {
+    if (!hasDrawn) { hasDrawn = true; canvasHint.classList.add('hidden'); checkReady(); }
+}
+
+document.getElementById('btn-clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    hasDrawn = false;
+    canvasHint.classList.remove('hidden');
+    checkReady();
+});
+
+document.getElementById('pen-size').addEventListener('input', e => { ctx.lineWidth = parseFloat(e.target.value); });
+
+document.querySelectorAll('.color-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        penColor = btn.dataset.color;
+        ctx.strokeStyle = penColor;
+    });
+});
+
+// Page target
+document.querySelectorAll('[data-pages]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-pages]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        sigTarget = btn.dataset.pages;
+        document.getElementById('page-num').style.display = sigTarget === 'num' ? 'block' : 'none';
+    });
+});
+
+// Size
+document.querySelectorAll('[data-size]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-size]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        sigSize = parseInt(btn.dataset.size);
+    });
+});
+
+// Position
+document.querySelectorAll('[data-pos]').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-pos]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        sigPos = btn.dataset.pos;
+    });
+});
+
+// Upload
+const uploadZone = document.getElementById('upload-zone');
+const fileInput  = document.getElementById('file-input');
+document.getElementById('btn-browse').addEventListener('click', () => fileInput.click());
+document.getElementById('btn-change').addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { handleFile(fileInput.files[0]); fileInput.value = ''; });
+
+async function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') return showToast('Seleccioná un archivo PDF', true);
+    const arr = await file.arrayBuffer();
+    pdfBytes   = new Uint8Array(arr);
+    fileName   = file.name.replace(/\.pdf$/i, '');
+    const { PDFDocument } = PDFLib;
+    const doc  = await PDFDocument.load(pdfBytes);
+    totalPages = doc.getPageCount();
+    document.getElementById('file-name-text').textContent = file.name;
+    document.getElementById('file-pages-text').textContent = `${totalPages} página${totalPages !== 1 ? 's' : ''}`;
+    document.getElementById('page-num').max = totalPages;
+    uploadZone.style.display = 'none';
+    document.getElementById('file-info').style.display  = 'block';
+    document.getElementById('work-area').classList.add('visible');
+    checkReady();
+}
+
+function checkReady() {
+    btnGenerate.disabled = !(pdfBytes && hasDrawn);
+}
+
+let toastTimer;
+function showToast(msg, err=false) {
+    clearTimeout(toastTimer);
+    toastEl.textContent = msg;
+    toastEl.className = 'toast show' + (err ? ' error' : '');
+    toastTimer = setTimeout(() => { toastEl.className = 'toast'; }, 3200);
+}
+
+btnGenerate.addEventListener('click', async () => {
+    if (!pdfBytes || !hasDrawn) return;
+    btnGenerate.disabled = true;
+    btnGenerate.classList.add('loading');
+    document.getElementById('btn-label').textContent = 'Firmando…';
+
+    try {
+        // Export signature as PNG with transparency
+        const sigDataUrl = sigCanvas.toDataURL('image/png');
+        const sigResp    = await fetch(sigDataUrl);
+        const sigBytes   = await sigResp.arrayBuffer();
+
+        const { PDFDocument } = PDFLib;
+        const doc    = await PDFDocument.load(pdfBytes);
+        const sigImg = await doc.embedPng(sigBytes);
+        const pages  = doc.getPages();
+
+        // Determine target pages
+        let targets = [];
+        if (sigTarget === 'all')   targets = pages.map((_, i) => i);
+        else if (sigTarget === 'first') targets = [0];
+        else if (sigTarget === 'last')  targets = [pages.length - 1];
+        else {
+            const n = parseInt(document.getElementById('page-num').value) - 1;
+            targets = [Math.max(0, Math.min(pages.length - 1, n))];
+        }
+
+        const MARGIN = 28;
+
+        targets.forEach(idx => {
+            const page = pages[idx];
+            const { width, height } = page.getSize();
+            const ratio = sigImg.height / sigImg.width;
+            const drawW = sigSize;
+            const drawH = drawW * ratio;
+
+            let x, y;
+            if (sigPos.endsWith('l'))  x = MARGIN;
+            else if (sigPos.endsWith('r')) x = width - drawW - MARGIN;
+            else x = (width - drawW) / 2;
+
+            if (sigPos.startsWith('t')) y = height - drawH - MARGIN;
+            else y = MARGIN;
+
+            page.drawImage(sigImg, { x, y, width: drawW, height: drawH });
+        });
+
+        const outBytes = await doc.save();
+        const blob = new Blob([outBytes], { type:'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url; a.download = `${fileName}-firmado.pdf`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        showToast(`✔ PDF firmado · ${targets.length} página${targets.length !== 1 ? 's' : ''}`);
+    } catch(err) {
+        console.error(err);
+        showToast('Error al firmar el PDF. Intentá con otro archivo.', true);
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.classList.remove('loading');
+        document.getElementById('btn-label').textContent = 'Firmar y descargar';
+        checkReady();
+    }
+});
+</script>
+</body>
+</html>
